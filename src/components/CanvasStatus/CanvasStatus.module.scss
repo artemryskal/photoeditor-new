@@ -1,0 +1,12 @@
+.CanvasStatus {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  background-color: #1c1c1c;
+  color: #fff;
+  flex-shrink: 0;
+  height: 60px;
+  box-sizing: border-box;
+}
