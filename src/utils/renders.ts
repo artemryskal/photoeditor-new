@@ -1,20 +1,29 @@
 import { parseGrayBit7 } from './parsers';
 
+interface RenderCanvasResult {
+  width: number;
+  height: number;
+  colorDepth: number;
+}
+
 export const renderCanvas = async (file: File, canvas: HTMLCanvasElement) => {
   if (!file || !canvas) return;
 
-  const ext = file.name.split('.').pop()?.toLowerCase();
+  try {
+    const ext = file.name.split('.').pop()?.toLowerCase();
 
-  if (ext === 'gb7') {
-    return await renderGb7(file, canvas);
+    if (ext === 'gb7') {
+      return await renderGb7(file, canvas);
+    }
+    return await renderClassicExt(file, canvas);
+  } catch (e) {
+    console.error(e);
+    return;
   }
-
-  // ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp'
-  return await renderClassicExt(file, canvas);
 };
 
 // Для классических расширений (png, jpg, jpeg)
-export const renderClassicExt = (file: File, canvas: HTMLCanvasElement) => {
+export const renderClassicExt = (file: File, canvas: HTMLCanvasElement): Promise<RenderCanvasResult> => {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const image = new Image();
