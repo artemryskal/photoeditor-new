@@ -1,4 +1,5 @@
 import { useAtom } from '@reatom/npm-react';
+import { Button } from '@radix-ui/themes';
 
 import { statusAtom, imageStateAtom, scaleAtom } from '@/stores';
 import { useModal } from '@/hooks';
@@ -62,9 +63,9 @@ export const CanvasStatus = () => {
           </select>
         </div>
 
-        <button onClick={open} className={css.ResizeButton}>
+        <Button onClick={open} style={{ width: '100%' }}>
           Изменить размер
-        </button>
+        </Button>
       </div>
 
       <Modal>

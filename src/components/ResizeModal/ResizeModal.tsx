@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAtom } from '@reatom/npm-react';
+import { Button } from '@radix-ui/themes';
 
 import { imageStateAtom, statusAtom } from '@/stores';
 import { INTERPOLATION_METHODS, type InterpolationMethod, resizeImage } from '@/utils/interpolations';
@@ -264,14 +265,14 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
                 </option>
               ))}
             </select>
-            <button
+            <Button
               type="button"
-              className={css.TooltipButton}
+              variant="soft"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
             >
               ?
-            </button>
+            </Button>
             {showTooltip && (
               <div className={css.Tooltip}>
                 <strong>{currentMethod.name}</strong>
@@ -285,12 +286,12 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
         </div>
 
         <div className={css.Actions}>
-          <button type="button" className={css.CancelButton} onClick={onClose}>
+          <Button type="button" variant="soft" onClick={onClose} style={{ flex: 1 }}>
             Отмена
-          </button>
-          <button type="submit" className={css.SubmitButton}>
+          </Button>
+          <Button type="submit" variant="soft" style={{ flex: 1 }}>
             Применить
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -154,27 +154,6 @@
   }
 }
 
-.TooltipButton {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid #007bff;
-  background: white;
-  color: #007bff;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #007bff;
-    color: white;
-  }
-}
-
 .Tooltip {
   position: absolute;
   top: 100%;
@@ -219,38 +198,4 @@
   display: flex;
   gap: 12px;
   padding-top: 10px;
-
-  button {
-    flex: 1;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-}
-
-.CancelButton {
-  background: #6c757d;
-  color: white;
-
-  &:hover {
-    background: #5a6268;
-  }
-}
-
-.SubmitButton {
-  background: #007bff;
-  color: white;
-
-  &:hover {
-    background: #0056b3;
-  }
-
-  &:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-  }
 }
