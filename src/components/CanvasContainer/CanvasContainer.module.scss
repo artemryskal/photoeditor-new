@@ -3,14 +3,39 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - 60px); // Высота экрана минус высота тулбара
   background-color: #5a5a5a;
-  overflow: hidden;
+}
+
+.CanvasWrapper {
+  position: relative;
+  flex-grow: 1;
+  overflow: auto;
+
+  // Стилизация полос прокрутки
+  &::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #4a4a4a;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 6px;
+
+    &:hover {
+      background: #aaa;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: #4a4a4a;
+  }
 }
 
 .Canvas {
-  width: 100%;
-  height: 100%;
-  flex-grow: 1;
-  object-fit: contain;
+  display: block;
 }

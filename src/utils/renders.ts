@@ -123,24 +123,11 @@ export const renderScaledImage = (
   const scaledWidth = Math.round((originalWidth * scale) / 100);
   const scaledHeight = Math.round((originalHeight * scale) / 100);
 
-  // Строгие отступы 50px со всех сторон
   const padding = 50;
-  const availableWidth = canvas.width - padding * 2;
-  const availableHeight = canvas.height - padding * 2;
 
-  // Если изображение слишком большое, масштабируем его чтобы поместилось с отступами
-  let finalWidth = scaledWidth;
-  let finalHeight = scaledHeight;
-
-  if (scaledWidth > availableWidth || scaledHeight > availableHeight) {
-    const scaleToFit = Math.min(availableWidth / scaledWidth, availableHeight / scaledHeight);
-    finalWidth = scaledWidth * scaleToFit;
-    finalHeight = scaledHeight * scaleToFit;
-  }
-
-  // Центрируем изображение с учетом отступов 50px
-  const x = padding + (availableWidth - finalWidth) / 2;
-  const y = padding + (availableHeight - finalHeight) / 2;
+  // Центрируем изображение с отступами
+  const x = padding + (canvas.width - padding * 2 - scaledWidth) / 2;
+  const y = padding + (canvas.height - padding * 2 - scaledHeight) / 2;
 
   // Создаем временный canvas с оригинальным изображением
   const tempCanvas = document.createElement('canvas');
@@ -151,8 +138,8 @@ export const renderScaledImage = (
 
   tempCtx.putImageData(imageData, 0, 0);
 
-  // Рендерим масштабированное изображение
-  ctx.drawImage(tempCanvas, x, y, finalWidth, finalHeight);
+  // Рендерим изображение
+  ctx.drawImage(tempCanvas, x, y, scaledWidth, scaledHeight);
 };
 
 /**
@@ -169,6 +156,10 @@ export const renderCanvasWithAutoScale = async (
 
   try {
     const ext = file.name.split('.').pop()?.toLowerCase();
+
+    // Сохраняем оригинальные размеры контейнера ДО загрузки изображения
+    const containerWidth = canvas.width;
+    const containerHeight = canvas.height;
 
     let result: RenderCanvasResult | undefined;
     let imageData: ImageData | undefined;
@@ -189,10 +180,14 @@ export const renderCanvasWithAutoScale = async (
 
     if (!result || !imageData) return;
 
-    // Рассчитываем оптимальный масштаб
-    const scale = calculateOptimalScale(result.width, result.height, canvas.width, canvas.height);
+    // Восстанавливаем размер canvas контейнера
+    canvas.width = containerWidth;
+    canvas.height = containerHeight;
 
-    // Рендерим с масштабированием и центрированием
+    // Рассчитываем оптимальный масштаб для КОНТЕЙНЕРА, а не изображения
+    const scale = calculateOptimalScale(result.width, result.height, containerWidth, containerHeight);
+
+    // Рендерим с масштабированием и центрированием с отступами
     renderScaledImage(imageData, result.width, result.height, canvas, scale);
 
     return {
@@ -204,4 +199,68 @@ export const renderCanvasWithAutoScale = async (
     console.error(e);
     return;
   }
+};
+
+/**
+ * Рендерит масштабированное изображение с учетом позиции для перемещения
+ * @param imageData - данные оригинального изображения
+ * @param originalWidth - оригинальная ширина
+ * @param originalHeight - оригинальная высота
+ * @param canvas - canvas для рендеринга
+ * @param scale - масштаб в процентах
+ * @param position - позиция смещения изображения
+ */
+export const renderScaledImageWithPosition = (
+  imageData: ImageData,
+  originalWidth: number,
+  originalHeight: number,
+  canvas: HTMLCanvasElement,
+  scale: number,
+  position: { x: number; y: number },
+) => {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const scaleFactor = scale / 100;
+  const finalWidth = originalWidth * scaleFactor;
+  const finalHeight = originalHeight * scaleFactor;
+
+  // Размеры контейнера
+  const containerWidth = canvas.parentElement?.clientWidth || 800;
+  const containerHeight = canvas.parentElement?.clientHeight || 600;
+
+  // Устанавливаем размер canvas
+  canvas.width = Math.max(containerWidth, finalWidth);
+  canvas.height = Math.max(containerHeight, finalHeight);
+
+  // Очищаем canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Центрируем изображение и добавляем смещение
+  const x = (canvas.width - finalWidth) / 2 + position.x;
+  const y = (canvas.height - finalHeight) / 2 + position.y;
+
+  // Ограничиваем перемещение так, чтобы часть изображения всегда была видна
+  const minVisibleWidth = Math.min(100, finalWidth * 0.1);
+  const minVisibleHeight = Math.min(100, finalHeight * 0.1);
+
+  const maxX = canvas.width - minVisibleWidth;
+  const minX = -finalWidth + minVisibleWidth;
+  const maxY = canvas.height - minVisibleHeight;
+  const minY = -finalHeight + minVisibleHeight;
+
+  const constrainedX = Math.max(minX, Math.min(maxX, x));
+  const constrainedY = Math.max(minY, Math.min(maxY, y));
+
+  // Создаем временный canvas с оригинальным изображением
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = originalWidth;
+  tempCanvas.height = originalHeight;
+  const tempCtx = tempCanvas.getContext('2d');
+  if (!tempCtx) return;
+
+  tempCtx.putImageData(imageData, 0, 0);
+
+  // Рендерим изображение
+  ctx.drawImage(tempCanvas, constrainedX, constrainedY, finalWidth, finalHeight);
 };

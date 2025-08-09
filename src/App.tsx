@@ -1,9 +1,12 @@
+import { Theme } from '@radix-ui/themes';
 import { CanvasContainer } from '@/components/CanvasContainer';
 
 export const App = () => {
   return (
-    <div className="app">
-      <CanvasContainer />
-    </div>
+    <Theme>
+      <div className="app">
+        <CanvasContainer />
+      </div>
+    </Theme>
   );
 };

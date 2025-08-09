@@ -1,0 +1,19 @@
+.Toolbar {
+  padding: 12px;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ToolButton {
+  min-width: 40px;
+  height: 40px;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-1px);
+    transition: transform 0.1s ease;
+  }
+}
