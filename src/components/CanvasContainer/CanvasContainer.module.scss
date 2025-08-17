@@ -1,10 +1,25 @@
 .CanvasContainer {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
   height: calc(100vh - 60px); // Высота экрана минус высота тулбара
   background-color: #5a5a5a;
+}
+
+.MainContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.RightPanel {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  background: #2a2a2a;
+  border-left: 1px solid #444;
 }
 
 .CanvasWrapper {

@@ -12,12 +12,20 @@ import {
   secondaryColorAtom,
   type ColorInfo,
 } from '@/stores';
-import { renderCanvasWithAutoScale, renderScaledImageWithPosition, rgbToXyz, rgbToLab, rgbToOklch } from '@/utils';
+import {
+  renderCanvasWithAutoScale,
+  renderScaledImageWithPosition,
+  renderLayersWithScaleAndPosition,
+  rgbToXyz,
+  rgbToLab,
+  rgbToOklch,
+} from '@/utils';
+import { useLayersActions, useLayersState } from '@/hooks';
 
 import { CanvasUpload } from '@/components/CanvasUpload';
-import { CanvasStatus } from '@/components/CanvasStatus';
 import { Toolbar } from '@/components/Toolbar';
 import { ColorPanel } from '@/components/ColorPanel';
+import { LayersPanel } from '@/components/LayersPanel';
 
 import css from './CanvasContainer.module.scss';
 
@@ -32,6 +40,8 @@ export const CanvasContainer = () => {
   const [canvasPosition, setCanvasPosition] = useAtom(canvasPositionAtom);
   const [, setPrimaryColor] = useAtom(primaryColorAtom);
   const [, setSecondaryColor] = useAtom(secondaryColorAtom);
+  const layersState = useLayersState();
+  const { addLayer, clearAllLayers } = useLayersActions();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
@@ -176,24 +186,56 @@ export const CanvasContainer = () => {
         imageData,
       });
       setScale(calculatedScale);
+
+      // Создаем слой из загруженного изображения
+      if (imageData) {
+        // Очищаем слои при загрузке нового файла
+        clearAllLayers();
+
+        // Добавляем новый слой с изображением
+        setTimeout(() => {
+          addLayer({
+            name: file.name || 'Фоновый слой',
+            visible: true,
+            opacity: 1,
+            blendMode: 'normal',
+            imageData,
+            type: 'image',
+            isActive: true,
+          });
+        }, 0);
+      }
     };
 
     renderHandler();
-  }, [file, setStatus, setImageState, setScale]);
+  }, [file, setStatus, setImageState, setScale, addLayer, clearAllLayers]);
 
-  // Эффект для рендеринга изображения при изменении масштаба или позиции
+  // Эффект для рендеринга слоев при изменении масштаба, позиции или слоев
   useEffect(() => {
-    if (!imageState?.imageData || !canvasRef.current) return;
+    if (!imageState || !canvasRef.current) return;
 
-    renderScaledImageWithPosition(
-      imageState.imageData,
-      imageState.originalWidth,
-      imageState.originalHeight,
-      canvasRef.current,
-      scale,
-      canvasPosition,
-    );
-  }, [scale, imageState?.imageData, imageState?.originalWidth, imageState?.originalHeight, canvasPosition]);
+    // Если есть слои, рендерим их
+    if (layersState.layers.length > 0) {
+      renderLayersWithScaleAndPosition(
+        layersState.layers,
+        imageState.originalWidth,
+        imageState.originalHeight,
+        canvasRef.current,
+        scale,
+        canvasPosition,
+      );
+    } else if (imageState.imageData) {
+      // Если слоев нет, рендерим оригинальное изображение (для обратной совместимости)
+      renderScaledImageWithPosition(
+        imageState.imageData,
+        imageState.originalWidth,
+        imageState.originalHeight,
+        canvasRef.current,
+        scale,
+        canvasPosition,
+      );
+    }
+  }, [scale, imageState, canvasPosition, layersState.layers]);
 
   // Эффект для смены курсора в зависимости от активного инструмента
   useEffect(() => {
@@ -247,20 +289,24 @@ export const CanvasContainer = () => {
     <>
       <Toolbar />
       <div className={css.CanvasContainer}>
-        <div className={css.CanvasWrapper}>
-          <canvas
-            ref={canvasRef}
-            className={css.Canvas}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onClick={handleCanvasClick}
-          />
+        <div className={css.MainContent}>
+          <div className={css.CanvasWrapper}>
+            <canvas
+              ref={canvasRef}
+              className={css.Canvas}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onClick={handleCanvasClick}
+            />
+          </div>
         </div>
-        <CanvasStatus />
+        <div className={css.RightPanel}>
+          <LayersPanel />
+          <ColorPanel />
+        </div>
       </div>
-      <ColorPanel />
     </>
   );
 };

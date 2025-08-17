@@ -1,0 +1,185 @@
+.layerItem {
+  background: #333;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #3a3a3a;
+    border-color: #555;
+  }
+
+  &.active {
+    background: #0066cc;
+    border-color: #007acc;
+
+    &:hover {
+      background: #0077dd;
+    }
+  }
+
+  &.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+  }
+}
+
+.layerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.layerInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.layerDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.layerName {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activeIndicator {
+  color: #00ff88;
+  font-size: 8px;
+}
+
+.layerType {
+  font-size: 11px;
+  color: #ccc;
+}
+
+.layerControls {
+  display: flex;
+  gap: 4px;
+}
+
+.visibilityButton,
+.deleteButton {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.visibilityButton.hidden {
+  opacity: 0.4;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.deleteButton:hover {
+  background: rgba(255, 100, 100, 0.3);
+}
+
+.layerProperties {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.opacityControl,
+.blendModeControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+
+  label {
+    color: #ccc;
+    white-space: nowrap;
+    min-width: 80px;
+  }
+}
+
+.opacityControl {
+  input[type='range'] {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #555;
+    outline: none;
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #007acc;
+      cursor: pointer;
+    }
+
+    &::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #007acc;
+      border: none;
+      cursor: pointer;
+    }
+  }
+}
+
+.opacityValue {
+  min-width: 30px;
+  text-align: right;
+  color: #fff;
+  font-size: 10px;
+}
+
+.blendModeControl {
+  select {
+    flex: 1;
+    background: #444;
+    border: 1px solid #666;
+    border-radius: 4px;
+    color: white;
+    padding: 4px 6px;
+    font-size: 11px;
+    cursor: pointer;
+
+    &:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    option {
+      background: #444;
+      color: white;
+    }
+  }
+}

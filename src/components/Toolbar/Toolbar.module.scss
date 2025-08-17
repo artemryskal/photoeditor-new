@@ -1,10 +1,18 @@
 .Toolbar {
-  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
   background: var(--color-background);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: 10;
+  min-height: 60px;
+}
+
+.ToolsSection {
+  flex-shrink: 0;
 }
 
 .ToolButton {
@@ -15,5 +23,75 @@
   &:hover {
     transform: translateY(-1px);
     transition: transform 0.1s ease;
+  }
+}
+
+.Separator {
+  height: 32px;
+  background: var(--color-border);
+  width: 1px;
+}
+
+.ImageInfo {
+  min-width: 400px;
+  flex-shrink: 0;
+}
+
+.InfoText {
+  font-size: 12px;
+  color: var(--gray-11);
+  white-space: nowrap;
+}
+
+.ScaleControls {
+  flex-shrink: 0;
+}
+
+.ScaleLabel {
+  font-size: 12px;
+  color: var(--gray-11);
+  white-space: nowrap;
+}
+
+.ScaleRange {
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--gray-6);
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-9);
+    cursor: pointer;
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-9);
+    border: none;
+    cursor: pointer;
+  }
+}
+
+.ScaleSelect {
+  min-width: 70px;
+  padding: 4px 8px;
+  border: 1px solid var(--gray-7);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--gray-12);
+  font-size: 12px;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-8);
   }
 }

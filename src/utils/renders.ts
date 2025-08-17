@@ -1,4 +1,6 @@
 import { parseGrayBit7 } from './parsers';
+import { compositeLayers, createColorImageData } from './blendModes';
+import type { Layer } from '../types/CanvasTypes';
 
 interface RenderCanvasResult {
   width: number;
@@ -263,4 +265,65 @@ export const renderScaledImageWithPosition = (
 
   // Рендерим изображение
   ctx.drawImage(tempCanvas, constrainedX, constrainedY, finalWidth, finalHeight);
+};
+
+/**
+ * Рендерит изображение с учетом слоев, масштаба и позиции
+ * @param layers - массив слоев для рендеринга
+ * @param originalWidth - оригинальная ширина изображения
+ * @param originalHeight - оригинальная высота изображения
+ * @param canvas - canvas для рендеринга
+ * @param scale - масштаб в процентах
+ * @param position - позиция canvas для перемещения
+ */
+export const renderLayersWithScaleAndPosition = (
+  layers: Layer[],
+  originalWidth: number,
+  originalHeight: number,
+  canvas: HTMLCanvasElement,
+  scale: number,
+  position: { x: number; y: number },
+) => {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Очищаем canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Если нет слоев, возвращаемся
+  if (layers.length === 0) return;
+
+  // Подготавливаем данные слоев для композиции
+  const layerDataForComposition = layers
+    .filter((layer) => layer.visible)
+    .map((layer) => {
+      let imageData: ImageData;
+
+      if (layer.type === 'color' && layer.color) {
+        // Создаем ImageData из цвета
+        imageData = createColorImageData(layer.color, originalWidth, originalHeight);
+      } else if (layer.type === 'image' && layer.imageData) {
+        // Используем ImageData изображения
+        imageData = layer.imageData;
+      } else {
+        // Создаем пустой прозрачный слой
+        imageData = new ImageData(originalWidth, originalHeight);
+      }
+
+      return {
+        imageData,
+        blendMode: layer.blendMode,
+        opacity: layer.opacity,
+        visible: layer.visible,
+      };
+    });
+
+  // Если нет видимых слоев, возвращаемся
+  if (layerDataForComposition.length === 0) return;
+
+  // Композируем слои
+  const compositeImageData = compositeLayers(layerDataForComposition, originalWidth, originalHeight);
+
+  // Рендерим композированное изображение с учетом масштаба и позиции
+  renderScaledImageWithPosition(compositeImageData, originalWidth, originalHeight, canvas, scale, position);
 };
