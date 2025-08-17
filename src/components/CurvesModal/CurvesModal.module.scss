@@ -1,0 +1,199 @@
+.curvesModal {
+  width: 1000px;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #ffffff;
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+  }
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  min-height: 700px;
+}
+
+.leftPanel {
+  flex: 2;
+  padding: 20px;
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  overflow: auto;
+}
+
+.rightPanel {
+  flex: 1;
+  padding: 20px;
+  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.histogramSection,
+.curveSection {
+  margin-bottom: 32px;
+
+  h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+.channelSelection {
+  h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+
+  input[type='radio'] {
+    cursor: pointer;
+  }
+}
+
+.pointsSection {
+  h4 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+.pointInputs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pointGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+  }
+}
+
+.coordinateInputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input {
+    width: 60px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+
+    &:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+  }
+
+  span {
+    font-weight: bold;
+    color: #666;
+  }
+}
+
+.previewSection {
+  margin-top: 24px;
+
+  .checkboxContainer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    label {
+      font-size: 14px;
+      cursor: pointer;
+    }
+  }
+
+  .previewImage {
+    margin-top: 16px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f9f9f9;
+    text-align: center;
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background: white;
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #ffffff;
+}
+
+.errorMessage {
+  padding: 40px;
+  text-align: center;
+
+  h3 {
+    margin: 0 0 16px 0;
+    color: #d32f2f;
+  }
+
+  p {
+    margin: 0 0 24px 0;
+    color: #666;
+  }
+}

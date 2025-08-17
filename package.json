@@ -12,11 +12,16 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.1",
+    "@mui/x-charts": "^8.10.1",
     "@radix-ui/react-icons": "^1.3.2",
     "@radix-ui/themes": "^3.2.1",
     "@reatom/core": "^3.10.1",
     "@reatom/framework": "^3.4.64",
     "@reatom/npm-react": "^3.10.6",
+    "babel-plugin-react-compiler": "^19.1.0-rc.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hotkeys-hook": "^5.1.0"

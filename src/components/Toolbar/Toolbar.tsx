@@ -6,6 +6,7 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { activeTool, statusAtom, imageStateAtom, scaleAtom, type Tool } from '@/stores';
 import { useModal } from '@/hooks';
 import { ResizeModal } from '@/components/ResizeModal';
+import { CurvesModal } from '@/components/CurvesModal';
 
 import css from './Toolbar.module.scss';
 
@@ -14,7 +15,8 @@ export const Toolbar = () => {
   const [status] = useAtom(statusAtom);
   const [imageState] = useAtom(imageStateAtom);
   const [scale, setScale] = useAtom(scaleAtom);
-  const { open, close, Modal } = useModal();
+  const { open: openResize, close: closeResize, Modal: ResizeModalWrapper } = useModal();
+  const { open: openCurves, close: closeCurves, Modal: CurvesModalWrapper } = useModal();
 
   const handleToolChange = (newTool: Tool) => {
     setTool(newTool);
@@ -108,14 +110,22 @@ export const Toolbar = () => {
 
         <Separator orientation="vertical" className={css.Separator} />
 
-        <Button onClick={open} size="2">
+        <Button onClick={openResize} size="2">
           Изменить размер
+        </Button>
+
+        <Button onClick={openCurves} size="2" disabled={!imageState}>
+          Кривые
         </Button>
       </div>
 
-      <Modal>
-        <ResizeModal onClose={close} />
-      </Modal>
+      <ResizeModalWrapper>
+        <ResizeModal onClose={closeResize} />
+      </ResizeModalWrapper>
+
+      <CurvesModalWrapper>
+        <CurvesModal onClose={closeCurves} />
+      </CurvesModalWrapper>
     </>
   );
 };

@@ -54,3 +54,23 @@ export interface LayersState {
   activeLayerId: string | null;
   maxLayers: number; // максимум 2 слоя по ТЗ
 }
+
+// Градационная коррекция
+export interface CurvePoint {
+  input: number;
+  output: number;
+}
+
+export interface HistogramData {
+  red: number[];
+  green: number[];
+  blue: number[];
+  alpha?: number[];
+  total: number;
+}
+
+export interface CurvesSettings {
+  point1: CurvePoint;
+  point2: CurvePoint;
+  targetChannel: 'rgb' | 'alpha';
+}
