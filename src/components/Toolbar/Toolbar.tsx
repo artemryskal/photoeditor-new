@@ -7,6 +7,7 @@ import { activeTool, statusAtom, imageStateAtom, scaleAtom, type Tool } from '@/
 import { useModal } from '@/hooks';
 import { ResizeModal } from '@/components/ResizeModal';
 import { CurvesModal } from '@/components/CurvesModal';
+import { FiltersModal } from '@/components/FiltersModal';
 
 import css from './Toolbar.module.scss';
 
@@ -17,6 +18,7 @@ export const Toolbar = () => {
   const [scale, setScale] = useAtom(scaleAtom);
   const { open: openResize, close: closeResize, Modal: ResizeModalWrapper } = useModal();
   const { open: openCurves, close: closeCurves, Modal: CurvesModalWrapper } = useModal();
+  const { open: openFilters, close: closeFilters, Modal: FiltersModalWrapper } = useModal();
 
   const handleToolChange = (newTool: Tool) => {
     setTool(newTool);
@@ -117,6 +119,10 @@ export const Toolbar = () => {
         <Button onClick={openCurves} size="2" disabled={!imageState}>
           Кривые
         </Button>
+
+        <Button onClick={openFilters} size="2" disabled={!imageState}>
+          Фильтры
+        </Button>
       </div>
 
       <ResizeModalWrapper>
@@ -126,6 +132,10 @@ export const Toolbar = () => {
       <CurvesModalWrapper>
         <CurvesModal onClose={closeCurves} />
       </CurvesModalWrapper>
+
+      <FiltersModalWrapper>
+        <FiltersModal onClose={closeFilters} />
+      </FiltersModalWrapper>
     </>
   );
 };

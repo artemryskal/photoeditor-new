@@ -74,3 +74,19 @@ export interface CurvesSettings {
   point2: CurvePoint;
   targetChannel: 'rgb' | 'alpha';
 }
+
+// Фильтрация с ядрами
+export type KernelPreset = 'identity' | 'sharpen' | 'gaussian' | 'box-blur' | 'prewitt-x' | 'prewitt-y';
+
+export interface FilterKernel {
+  name: string;
+  values: number[][]; // 3x3 матрица
+  divisor?: number; // делитель для нормализации
+}
+
+export interface FilterSettings {
+  preset: KernelPreset | 'custom';
+  kernel: number[][]; // 3x3 матрица
+  divisor: number;
+  previewEnabled: boolean;
+}
