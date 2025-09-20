@@ -190,6 +190,7 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
         <div className={css.UnitSelector}>
           <label>
             <input
+              key={formData.unit + 'pixels'}
               type="radio"
               name="unit"
               value="pixels"
@@ -200,6 +201,7 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
           </label>
           <label>
             <input
+              key={formData.unit + 'percent'}
               type="radio"
               name="unit"
               value="percent"
@@ -209,7 +211,6 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
             Проценты
           </label>
         </div>
-
         <div className={css.SizeInputs}>
           <div className={css.InputGroup}>
             <label htmlFor="width">Ширина:</label>
@@ -237,10 +238,11 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
             {errors.height && <span className={css.ErrorText}>{errors.height}</span>}
           </div>
         </div>
-
+        ``
         <div className={css.AspectRatioControl}>
           <label>
             <input
+              key={formData.maintainAspectRatio + 'checkbox'}
               type="checkbox"
               checked={formData.maintainAspectRatio}
               onChange={(e) => setFormData((prev) => ({ ...prev, maintainAspectRatio: e.target.checked }))}
@@ -248,7 +250,6 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
             Сохранять пропорции
           </label>
         </div>
-
         <div className={css.InterpolationControl}>
           <label htmlFor="interpolation">Алгоритм интерполяции:</label>
           <div className={css.InterpolationSelector}>
@@ -284,7 +285,6 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
             )}
           </div>
         </div>
-
         <div className={css.Actions}>
           <Button type="button" variant="soft" onClick={onClose} style={{ flex: 1 }}>
             Отмена
