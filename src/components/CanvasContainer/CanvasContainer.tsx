@@ -279,7 +279,6 @@ export const CanvasContainer = () => {
   if (!file) {
     return (
       <>
-        <Toolbar />
         <CanvasUpload />
       </>
     );
