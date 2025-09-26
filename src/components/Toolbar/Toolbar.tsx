@@ -1,10 +1,12 @@
 import { useAtom } from '@reatom/npm-react';
-import { Button, Tooltip, Flex, Separator } from '@radix-ui/themes';
-import { CursorArrowIcon, EyeOpenIcon } from '@radix-ui/react-icons';
+import { Button, Tooltip, Flex, Separator, DropdownMenu } from '@radix-ui/themes';
+import { CursorArrowIcon, EyeOpenIcon, DownloadIcon } from '@radix-ui/react-icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 
-import { activeTool, statusAtom, imageStateAtom, scaleAtom, type Tool } from '@/stores';
+import { activeTool, statusAtom, imageStateAtom, scaleAtom, fileAtom, type Tool } from '@/stores';
 import { useModal } from '@/hooks';
+import { useLayersState } from '@/hooks';
+import { exportToPNG, exportToJPG, exportToGB7, getFileNameWithoutExtension } from '@/utils';
 import { ResizeModal } from '@/components/ResizeModal';
 import { CurvesModal } from '@/components/CurvesModal';
 import { FiltersModal } from '@/components/FiltersModal';
@@ -16,6 +18,8 @@ export const Toolbar = () => {
   const [status] = useAtom(statusAtom);
   const [imageState] = useAtom(imageStateAtom);
   const [scale, setScale] = useAtom(scaleAtom);
+  const [file] = useAtom(fileAtom);
+  const layersState = useLayersState();
   const { open: openResize, close: closeResize, Modal: ResizeModalWrapper } = useModal();
   const { open: openCurves, close: closeCurves, Modal: CurvesModalWrapper } = useModal();
   const { open: openFilters, close: closeFilters, Modal: FiltersModalWrapper } = useModal();
@@ -27,6 +31,28 @@ export const Toolbar = () => {
   const handleScaleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newScale = parseInt(e.target.value);
     setScale(newScale);
+  };
+
+  // Функции экспорта
+  const handleExportPNG = () => {
+    if (!imageState || layersState.layers.length === 0) return;
+
+    const filename = file ? `${getFileNameWithoutExtension(file.name)}.png` : 'export.png';
+    exportToPNG(layersState.layers, imageState.originalWidth, imageState.originalHeight, filename);
+  };
+
+  const handleExportJPG = () => {
+    if (!imageState || layersState.layers.length === 0) return;
+
+    const filename = file ? `${getFileNameWithoutExtension(file.name)}.jpg` : 'export.jpg';
+    exportToJPG(layersState.layers, imageState.originalWidth, imageState.originalHeight, filename);
+  };
+
+  const handleExportGB7 = () => {
+    if (!imageState || layersState.layers.length === 0) return;
+
+    const filename = file ? `${getFileNameWithoutExtension(file.name)}.gb7` : 'export.gb7';
+    exportToGB7(layersState.layers, imageState.originalWidth, imageState.originalHeight, filename);
   };
 
   // Горячие клавиши для инструментов
@@ -123,6 +149,22 @@ export const Toolbar = () => {
         <Button onClick={openFilters} size="2" disabled={!imageState}>
           Фильтры
         </Button>
+
+        <Separator orientation="vertical" className={css.Separator} />
+
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <Button size="2" disabled={!imageState || layersState.layers.length === 0}>
+              <DownloadIcon />
+              Экспорт
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <DropdownMenu.Item onClick={handleExportPNG}>Экспорт в PNG</DropdownMenu.Item>
+            <DropdownMenu.Item onClick={handleExportJPG}>Экспорт в JPG</DropdownMenu.Item>
+            <DropdownMenu.Item onClick={handleExportGB7}>Экспорт в GB7</DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </div>
 
       <ResizeModalWrapper>
