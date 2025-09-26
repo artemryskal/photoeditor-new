@@ -114,6 +114,7 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
           <div className={styles.radioGroup}>
             <label className={styles.radioLabel}>
               <input
+                key={`${layerType}-${layerType === 'image'}-image`}
                 type="radio"
                 value="image"
                 checked={layerType === 'image'}
@@ -123,6 +124,7 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
             </label>
             <label className={styles.radioLabel}>
               <input
+                key={`${layerType}-${layerType === 'color'}-color`}
                 type="radio"
                 value="color"
                 checked={layerType === 'color'}
@@ -163,7 +165,7 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
           <button type="button" onClick={onClose} className={styles.cancelButton}>
             Отмена
           </button>
-          <button type="submit" className={styles.createButton}>
+          <button type="submit" className={styles.createButton} onClick={handleSubmit}>
             Создать слой
           </button>
         </div>
