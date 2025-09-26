@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getFileNameWithoutExtension } from '../export';
 import { parseGrayBit7 } from '../parsers';
 
@@ -31,7 +31,7 @@ class MockImageData {
   }
 }
 
-// @ts-ignore
+// @ts-expect-error @ts-ignore
 global.ImageData = MockImageData;
 
 // Мокаем создание элементов DOM
@@ -58,6 +58,7 @@ Object.defineProperty(URL, 'revokeObjectURL', {
 describe('Export utilities', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // @ts-expect-error @ts-ignore
     mockCanvas.getContext = vi.fn(() => mockContext);
   });
 
