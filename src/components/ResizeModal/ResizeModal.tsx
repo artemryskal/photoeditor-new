@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAtom } from '@reatom/npm-react';
 import { Button } from '@radix-ui/themes';
 
-import { imageStateAtom, statusAtom } from '@/stores';
+import { imageStateAtom, statusAtom, scaleAtom, canvasPositionAtom } from '@/stores';
 import { INTERPOLATION_METHODS, type InterpolationMethod, resizeImage } from '@/utils/interpolations';
+import { calculateOptimalScale } from '@/utils/renders';
+import { useLayersActions } from '@/hooks';
 
 import css from './ResizeModal.module.scss';
 
@@ -27,6 +29,9 @@ interface ResizeModalProps {
 export const ResizeModal = ({ onClose }: ResizeModalProps) => {
   const [imageState, setImageState] = useAtom(imageStateAtom);
   const [status, setStatus] = useAtom(statusAtom);
+  const [, setScale] = useAtom(scaleAtom);
+  const [, setCanvasPosition] = useAtom(canvasPositionAtom);
+  const { clearAllLayers, addLayer } = useLayersActions();
 
   const [formData, setFormData] = useState<ResizeFormData>({
     width: imageState?.originalWidth || 0,
@@ -144,7 +149,7 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
 
       const newImageData = resizedCtx.getImageData(0, 0, finalSize.width, finalSize.height);
 
-      // Обновляем состояние
+      // Сначала обновляем состояние изображения
       const newImageState = {
         originalWidth: finalSize.width,
         originalHeight: finalSize.height,
@@ -157,6 +162,39 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
         height: finalSize.height,
         colorDepth: status?.colorDepth || 24,
       });
+
+      // Затем обновляем слои с новыми размерами
+      // Очищаем существующие слои и добавляем новый
+      clearAllLayers();
+
+      // Добавляем новый слой с измененным изображением
+      // Используем setTimeout для обеспечения правильного порядка обновлений
+      setTimeout(() => {
+        addLayer({
+          name: 'Измененное изображение',
+          visible: true,
+          opacity: 1,
+          blendMode: 'normal',
+          imageData: newImageData,
+          type: 'image',
+          isActive: true,
+        });
+      }, 10);
+
+      // Пересчитываем масштаб и сбрасываем позицию после обновления слоев
+      setTimeout(() => {
+        // Пересчитываем масштаб для нового размера изображения
+        const canvasElement = document.querySelector('canvas');
+        if (canvasElement) {
+          const containerWidth = canvasElement.width || 800;
+          const containerHeight = canvasElement.height || 600;
+          const newScale = calculateOptimalScale(finalSize.width, finalSize.height, containerWidth, containerHeight);
+          setScale(newScale);
+        }
+
+        // Сбрасываем позицию canvas к центру
+        setCanvasPosition({ x: 0, y: 0 });
+      }, 20);
 
       // Закрываем модальное окно
       onClose?.();
@@ -238,7 +276,6 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
             {errors.height && <span className={css.ErrorText}>{errors.height}</span>}
           </div>
         </div>
-        ``
         <div className={css.AspectRatioControl}>
           <label>
             <input
@@ -289,7 +326,7 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
           <Button type="button" variant="soft" onClick={onClose} style={{ flex: 1 }}>
             Отмена
           </Button>
-          <Button type="submit" variant="soft" style={{ flex: 1 }}>
+          <Button type="submit" variant="soft" style={{ flex: 1 }} onClick={handleSubmit}>
             Применить
           </Button>
         </div>

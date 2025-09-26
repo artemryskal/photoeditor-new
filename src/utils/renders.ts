@@ -128,8 +128,8 @@ export const renderScaledImage = (
   const padding = 50;
 
   // Центрируем изображение с отступами
-  const x = padding + (canvas.width - padding * 2 - scaledWidth) / 2;
-  const y = padding + (canvas.height - padding * 2 - scaledHeight) / 2;
+  const x = Math.round(padding + (canvas.width - padding * 2 - scaledWidth) / 2);
+  const y = Math.round(padding + (canvas.height - padding * 2 - scaledHeight) / 2);
 
   // Создаем временный canvas с оригинальным изображением
   const tempCanvas = document.createElement('canvas');
@@ -224,31 +224,27 @@ export const renderScaledImageWithPosition = (
   if (!ctx) return;
 
   const scaleFactor = scale / 100;
-  const finalWidth = originalWidth * scaleFactor;
-  const finalHeight = originalHeight * scaleFactor;
+  const finalWidth = Math.round(originalWidth * scaleFactor);
+  const finalHeight = Math.round(originalHeight * scaleFactor);
 
-  // Размеры контейнера
-  const containerWidth = canvas.parentElement?.clientWidth || 800;
-  const containerHeight = canvas.parentElement?.clientHeight || 600;
-
-  // Устанавливаем размер canvas
-  canvas.width = Math.max(containerWidth, finalWidth);
-  canvas.height = Math.max(containerHeight, finalHeight);
+  // Сохраняем оригинальные размеры canvas (они уже установлены контейнером)
+  const canvasWidth = canvas.width;
+  const canvasHeight = canvas.height;
 
   // Очищаем canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
   // Центрируем изображение и добавляем смещение
-  const x = (canvas.width - finalWidth) / 2 + position.x;
-  const y = (canvas.height - finalHeight) / 2 + position.y;
+  const x = Math.round((canvasWidth - finalWidth) / 2 + position.x);
+  const y = Math.round((canvasHeight - finalHeight) / 2 + position.y);
 
   // Ограничиваем перемещение так, чтобы часть изображения всегда была видна
   const minVisibleWidth = Math.min(100, finalWidth * 0.1);
   const minVisibleHeight = Math.min(100, finalHeight * 0.1);
 
-  const maxX = canvas.width - minVisibleWidth;
+  const maxX = canvasWidth - minVisibleWidth;
   const minX = -finalWidth + minVisibleWidth;
-  const maxY = canvas.height - minVisibleHeight;
+  const maxY = canvasHeight - minVisibleHeight;
   const minY = -finalHeight + minVisibleHeight;
 
   const constrainedX = Math.max(minX, Math.min(maxX, x));
