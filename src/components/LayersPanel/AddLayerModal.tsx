@@ -109,6 +109,7 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
           />
         </div>
 
+        {/** TODO: Не получается добавить изображение */}
         <div className={styles.formGroup}>
           <label>Тип слоя:</label>
           <div className={styles.radioGroup}>

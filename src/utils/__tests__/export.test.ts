@@ -126,14 +126,15 @@ describe('Export utilities', () => {
       view.setUint8(2, 0x37); // '7'
       view.setUint8(3, 0x1d); // специальный байт
 
-      view.setUint8(4, 0x00);
+      // Версия (должна быть 0x01)
+      view.setUint8(4, 0x01);
+      // Флаги (без маски для этого теста)
       view.setUint8(5, 0x00);
 
       view.setUint16(6, width, false);
       view.setUint16(8, height, false);
 
-      view.setUint8(10, 0x00);
-      view.setUint8(11, 0x00);
+      view.setUint16(10, 0x0000);
 
       pixelArray.set(pixels);
 
@@ -145,6 +146,106 @@ describe('Export utilities', () => {
       expect(parsed.height).toBe(height);
       expect(parsed.colorDepth).toBe(7);
       expect(parsed.pixels.length).toBe(width * height);
+    });
+
+    it('должен корректно обрабатывать изображения с альфа-маской', () => {
+      // Создаем изображение с прозрачностью
+      const width = 2;
+      const height = 2;
+      const imageData = new ImageData(width, height);
+
+      // Заполняем: первый пиксель непрозрачный, второй прозрачный
+      imageData.data[0] = 255; // R
+      imageData.data[1] = 255; // G
+      imageData.data[2] = 255; // B
+      imageData.data[3] = 255; // A (непрозрачный)
+
+      imageData.data[4] = 128; // R
+      imageData.data[5] = 128; // G
+      imageData.data[6] = 128; // B
+      imageData.data[7] = 0; // A (прозрачный)
+
+      imageData.data[8] = 0; // R
+      imageData.data[9] = 0; // G
+      imageData.data[10] = 0; // B
+      imageData.data[11] = 255; // A (непрозрачный)
+
+      imageData.data[12] = 64; // R
+      imageData.data[13] = 64; // G
+      imageData.data[14] = 64; // B
+      imageData.data[15] = 0; // A (прозрачный)
+
+      // Мокаем getImageData
+      mockContext.getImageData = vi.fn(() => imageData);
+
+      // Симулируем экспорт с маской
+      const pixels = new Uint8Array(width * height);
+      const data = imageData.data;
+
+      // Проверяем наличие прозрачности
+      let hasTransparency = false;
+      for (let i = 0; i < width * height; i++) {
+        const alpha = data[i * 4 + 3];
+        if (alpha < 255) {
+          hasTransparency = true;
+          break;
+        }
+      }
+
+      expect(hasTransparency).toBe(true);
+
+      for (let i = 0; i < width * height; i++) {
+        const r = data[i * 4];
+        const g = data[i * 4 + 1];
+        const b = data[i * 4 + 2];
+        const alpha = data[i * 4 + 3];
+
+        const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        let grayValue = Math.floor((gray * 127) / 255);
+
+        if (hasTransparency) {
+          const isOpaque = alpha >= 128;
+          const maskBit = isOpaque ? 0x80 : 0x00;
+          grayValue |= maskBit;
+        }
+
+        pixels[i] = grayValue;
+      }
+
+      // Создаем заголовок с флагом маски
+      const headerSize = 12;
+      const buffer = new ArrayBuffer(headerSize + pixels.length);
+      const view = new DataView(buffer);
+      const pixelArray = new Uint8Array(buffer, headerSize);
+
+      view.setUint8(0, 0x47);
+      view.setUint8(1, 0x42);
+      view.setUint8(2, 0x37);
+      view.setUint8(3, 0x1d);
+      view.setUint8(4, 0x01); // версия
+      view.setUint8(5, 0x01); // флаг маски
+      view.setUint16(6, width, false);
+      view.setUint16(8, height, false);
+      view.setUint16(10, 0x0000);
+
+      pixelArray.set(pixels);
+
+      // Парсим и проверяем
+      const parsed = parseGrayBit7(buffer);
+      expect(parsed.hasMask).toBe(true);
+      expect(parsed.width).toBe(width);
+      expect(parsed.height).toBe(height);
+      expect(parsed.pixels.length).toBe(width * height);
+
+      // Проверяем, что биты маски установлены правильно
+      // Первый пиксель должен быть непрозрачным (бит 7 = 1)
+      expect(parsed.pixels[0] & 0x80).toBe(0x80);
+      // Второй пиксель должен быть прозрачным (бит 7 = 0)
+      expect(parsed.pixels[1] & 0x80).toBe(0x00);
+      // Третий пиксель должен быть непрозрачным (бит 7 = 1)
+      expect(parsed.pixels[2] & 0x80).toBe(0x80);
+      // Четвертый пиксель должен быть прозрачным (бит 7 = 0)
+      expect(parsed.pixels[3] & 0x80).toBe(0x00);
     });
   });
 

@@ -141,16 +141,36 @@ const convertToGB7 = (imageData: ImageData, width: number, height: number): Arra
   const pixels = new Uint8Array(width * height);
   const data = imageData.data;
 
+  // Проверяем, есть ли прозрачные пиксели для определения необходимости маски
+  let hasTransparency = false;
+  for (let i = 0; i < width * height; i++) {
+    const alpha = data[i * 4 + 3];
+    if (alpha < 255) {
+      hasTransparency = true;
+      break;
+    }
+  }
+
   for (let i = 0; i < width * height; i++) {
     const r = data[i * 4];
     const g = data[i * 4 + 1];
     const b = data[i * 4 + 2];
+    const alpha = data[i * 4 + 3];
 
     // Конвертируем RGB в серый с использованием стандартной формулы
     const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
 
     // Конвертируем в 7-битный формат (0-127)
-    pixels[i] = Math.floor((gray * 127) / 255);
+    let grayValue = Math.floor((gray * 127) / 255);
+
+    // Если есть прозрачность, используем бит маски
+    if (hasTransparency) {
+      const isOpaque = alpha >= 128; // Считаем полупрозрачные пиксели непрозрачными
+      const maskBit = isOpaque ? 0x80 : 0x00; // Бит 7: 1 = не замаскирован, 0 = замаскирован
+      grayValue |= maskBit;
+    }
+
+    pixels[i] = grayValue;
   }
 
   // Создаем заголовок файла GB7 согласно формату парсера
@@ -165,17 +185,19 @@ const convertToGB7 = (imageData: ImageData, width: number, height: number): Arra
   view.setUint8(2, 0x37); // '7'
   view.setUint8(3, 0x1d); // специальный байт
 
-  // Байты 4-5 зарезервированы (можно оставить 0)
-  view.setUint8(4, 0x00);
-  view.setUint8(5, 0x00);
+  // Версия (должна быть 0x01)
+  view.setUint8(4, 0x01);
+
+  // Флаги: бит 0 = флаг маски, остальные зарезервированы
+  const flags = hasTransparency ? 0x01 : 0x00;
+  view.setUint8(5, flags);
 
   // Записываем ширину и высоту как 16-битные целые числа (как ожидает парсер)
   view.setUint16(6, width, false); // big-endian (по умолчанию)
   view.setUint16(8, height, false); // big-endian (по умолчанию)
 
-  // Байты 10-11 зарезервированы
-  view.setUint8(10, 0x00);
-  view.setUint8(11, 0x00);
+  // Зарезервированные байты (2 байта)
+  view.setUint16(10, 0x0000);
 
   // Копируем пиксели
   pixelArray.set(pixels);

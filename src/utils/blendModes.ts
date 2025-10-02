@@ -136,6 +136,50 @@ export function compositeLayers(
 }
 
 /**
+ * Применяет альфа-каналы к изображению
+ * @param baseImage - базовое изображение
+ * @param alphaChannels - массив альфа-каналов
+ * @returns ImageData с примененными альфа-каналами
+ */
+export function applyAlphaChannels(
+  baseImage: ImageData,
+  alphaChannels: Array<{ visible: boolean; imageData?: ImageData }>,
+): ImageData {
+  const result = new ImageData(baseImage.width, baseImage.height);
+  const resultData = result.data;
+  const baseData = baseImage.data;
+
+  // Копируем базовое изображение
+  for (let i = 0; i < baseData.length; i++) {
+    resultData[i] = baseData[i];
+  }
+
+  // Применяем только видимые альфа-каналы
+  const visibleChannels = alphaChannels.filter((channel) => channel.visible && channel.imageData);
+
+  if (visibleChannels.length === 0) {
+    // Если нет видимых альфа-каналов, возвращаем исходное изображение
+    return result;
+  }
+
+  // Применяем все видимые альфа-каналы
+  for (const channel of visibleChannels) {
+    const channelData = channel.imageData!.data;
+
+    // Применяем альфа-канал как маску прозрачности
+    for (let i = 0; i < resultData.length; i += 4) {
+      const channelAlpha = channelData[i]; // Используем красный канал как альфа
+      const currentAlpha = resultData[i + 3];
+
+      // Умножаем текущую альфу на альфа-канал
+      resultData[i + 3] = Math.round((currentAlpha * channelAlpha) / 255);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Создает ImageData из цвета
  * @param color - цвет в формате hex (#ffffff)
  * @param width - ширина

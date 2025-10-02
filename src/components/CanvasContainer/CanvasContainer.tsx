@@ -41,7 +41,7 @@ export const CanvasContainer = () => {
   const [, setPrimaryColor] = useAtom(primaryColorAtom);
   const [, setSecondaryColor] = useAtom(secondaryColorAtom);
   const layersState = useLayersState();
-  const { addLayer, clearAllLayers } = useLayersActions();
+  const { addLayer, clearAllLayers, addAlphaChannel } = useLayersActions();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
@@ -176,7 +176,20 @@ export const CanvasContainer = () => {
       const result = await renderCanvasWithAutoScale(file, canvasRef.current);
       if (!result) return;
 
-      const { width, height, colorDepth, imageData, scale: calculatedScale } = result;
+      const {
+        width,
+        height,
+        colorDepth,
+        imageData,
+        scale: calculatedScale,
+        hasMask,
+        imageDataWithoutMask,
+        maskData,
+      } = result as typeof result & {
+        hasMask?: boolean;
+        imageDataWithoutMask?: ImageData;
+        maskData?: ImageData;
+      };
 
       // Обновляем состояние
       setStatus({ width, height, colorDepth });
@@ -194,21 +207,33 @@ export const CanvasContainer = () => {
 
         // Добавляем новый слой с изображением
         setTimeout(() => {
+          // Используем изображение без маски для слоя
+          const layerImageData = imageDataWithoutMask || imageData;
+
           addLayer({
             name: file.name || 'Фоновый слой',
             visible: true,
             opacity: 1,
             blendMode: 'normal',
-            imageData,
+            imageData: layerImageData,
             type: 'image',
             isActive: true,
           });
+
+          // Если у GB7 есть маска — создаем альфа-канал из отдельной маски
+          if (hasMask && maskData) {
+            try {
+              addAlphaChannel({ name: 'Маска GB7', visible: true, imageData: maskData });
+            } catch (e) {
+              console.error('Не удалось создать альфа‑канал из маски GB7', e);
+            }
+          }
         }, 0);
       }
     };
 
     renderHandler();
-  }, [file, setStatus, setImageState, setScale, addLayer, clearAllLayers]);
+  }, [file, setStatus, setImageState, setScale, addLayer, clearAllLayers, addAlphaChannel]);
 
   // Эффект для рендеринга слоев при изменении масштаба, позиции или слоев
   useEffect(() => {
@@ -223,6 +248,7 @@ export const CanvasContainer = () => {
         canvasRef.current,
         scale,
         canvasPosition,
+        layersState.alphaChannels,
       );
     } else if (imageState.imageData) {
       // Если слоев нет, рендерим оригинальное изображение (для обратной совместимости)
@@ -235,7 +261,7 @@ export const CanvasContainer = () => {
         canvasPosition,
       );
     }
-  }, [scale, imageState, canvasPosition, layersState.layers]);
+  }, [scale, imageState, canvasPosition, layersState.layers, layersState.alphaChannels]);
 
   // Эффект для смены курсора в зависимости от активного инструмента
   useEffect(() => {

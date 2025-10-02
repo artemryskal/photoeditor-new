@@ -1,5 +1,5 @@
 import { parseGrayBit7 } from './parsers';
-import { compositeLayers, createColorImageData } from './blendModes';
+import { compositeLayers, createColorImageData, applyAlphaChannels } from './blendModes';
 import type { Layer } from '../types/CanvasTypes';
 
 interface RenderCanvasResult {
@@ -7,6 +7,9 @@ interface RenderCanvasResult {
   height: number;
   colorDepth: number;
   imageData?: ImageData;
+  hasMask?: boolean;
+  imageDataWithoutMask?: ImageData;
+  maskData?: ImageData;
 }
 
 export const renderCanvas = async (file: File, canvas: HTMLCanvasElement) => {
@@ -55,22 +58,66 @@ export const renderGb7 = async (file: File, canvas: HTMLCanvasElement) => {
   if (!ctx) return;
 
   const buffer = await file.arrayBuffer();
-  const { width, height, pixels, colorDepth } = parseGrayBit7(buffer);
+  const { width, height, pixels, colorDepth, hasMask } = parseGrayBit7(buffer);
 
   canvas.width = width;
   canvas.height = height;
 
-  const imageData = ctx.createImageData(width, height);
-  for (let i = 0; i < width * height; i++) {
-    const gray = pixels[i] & 0x7f; // 7 бит серого
-    imageData.data[i * 4 + 0] = gray << 1; // R
-    imageData.data[i * 4 + 1] = gray << 1; // G
-    imageData.data[i * 4 + 2] = gray << 1; // B
-    imageData.data[i * 4 + 3] = 255; // A
-  }
-  ctx.putImageData(imageData, 0, 0);
+  // Создаем изображение без маски (всегда непрозрачное)
+  const imageDataWithoutMask = ctx.createImageData(width, height);
+  // Создаем данные маски отдельно
+  const maskData = hasMask ? new ImageData(width, height) : undefined;
 
-  return { width, height, colorDepth };
+  for (let i = 0; i < width * height; i++) {
+    const pixel = pixels[i];
+    const gray = pixel & 0x7f; // 7 бит серого (биты 6-0)
+
+    // Изображение без маски - всегда непрозрачное
+    imageDataWithoutMask.data[i * 4 + 0] = gray << 1; // R
+    imageDataWithoutMask.data[i * 4 + 1] = gray << 1; // G
+    imageDataWithoutMask.data[i * 4 + 2] = gray << 1; // B
+    imageDataWithoutMask.data[i * 4 + 3] = 255; // A (всегда непрозрачный)
+
+    // Если есть маска, создаем данные маски
+    if (hasMask && maskData) {
+      const maskBit = (pixel & 0x80) !== 0; // Бит 7 - флаг маски
+      const maskValue = maskBit ? 255 : 0; // 1 = не замаскирован, 0 = замаскирован
+
+      maskData.data[i * 4 + 0] = maskValue; // R
+      maskData.data[i * 4 + 1] = maskValue; // G
+      maskData.data[i * 4 + 2] = maskValue; // B
+      maskData.data[i * 4 + 3] = 255; // A
+    }
+  }
+
+  // Рендерим изображение с маской на canvas для отображения
+  const imageDataWithMask = ctx.createImageData(width, height);
+  for (let i = 0; i < width * height; i++) {
+    const pixel = pixels[i];
+    const gray = pixel & 0x7f; // 7 бит серого (биты 6-0)
+
+    // Обрабатываем альфа-канал в зависимости от наличия маски
+    let alpha = 255; // По умолчанию непрозрачный
+    if (hasMask) {
+      const maskBit = (pixel & 0x80) !== 0; // Бит 7 - флаг маски
+      alpha = maskBit ? 255 : 0; // 1 = не замаскирован, 0 = замаскирован
+    }
+
+    imageDataWithMask.data[i * 4 + 0] = gray << 1; // R
+    imageDataWithMask.data[i * 4 + 1] = gray << 1; // G
+    imageDataWithMask.data[i * 4 + 2] = gray << 1; // B
+    imageDataWithMask.data[i * 4 + 3] = alpha; // A
+  }
+  ctx.putImageData(imageDataWithMask, 0, 0);
+
+  return {
+    width,
+    height,
+    colorDepth,
+    hasMask,
+    imageDataWithoutMask,
+    maskData,
+  };
 };
 
 /**
@@ -271,6 +318,7 @@ export const renderScaledImageWithPosition = (
  * @param canvas - canvas для рендеринга
  * @param scale - масштаб в процентах
  * @param position - позиция canvas для перемещения
+ * @param alphaChannels - массив альфа-каналов для применения
  */
 export const renderLayersWithScaleAndPosition = (
   layers: Layer[],
@@ -279,6 +327,7 @@ export const renderLayersWithScaleAndPosition = (
   canvas: HTMLCanvasElement,
   scale: number,
   position: { x: number; y: number },
+  alphaChannels?: Array<{ visible: boolean; imageData?: ImageData }>,
 ) => {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -318,7 +367,12 @@ export const renderLayersWithScaleAndPosition = (
   if (layerDataForComposition.length === 0) return;
 
   // Композируем слои
-  const compositeImageData = compositeLayers(layerDataForComposition, originalWidth, originalHeight);
+  let compositeImageData = compositeLayers(layerDataForComposition, originalWidth, originalHeight);
+
+  // Применяем альфа-каналы к финальному изображению
+  if (alphaChannels && alphaChannels.length > 0) {
+    compositeImageData = applyAlphaChannels(compositeImageData, alphaChannels);
+  }
 
   // Рендерим композированное изображение с учетом масштаба и позиции
   renderScaledImageWithPosition(compositeImageData, originalWidth, originalHeight, canvas, scale, position);
