@@ -51,9 +51,8 @@
   gap: 24px;
 }
 
-.histogramSection,
-.curveSection {
-  margin-bottom: 32px;
+.combinedGraphSection {
+  margin-bottom: 24px;
 
   h4 {
     margin: 0 0 16px 0;
@@ -142,8 +141,37 @@
   }
 }
 
+.calculatingIndicator {
+  font-size: 14px;
+  color: #1976d2;
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .previewSection {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
   margin-top: 24px;
+  overflow: hidden;
+
+  .checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
 
   .checkboxContainer {
     display: flex;
@@ -157,6 +185,11 @@
   }
 
   .previewImage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+    overflow: hidden;
     margin-top: 16px;
     padding: 12px;
     border: 1px solid #ddd;
@@ -166,10 +199,12 @@
 
     canvas {
       max-width: 100%;
+      max-height: 100%;
       height: auto;
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       background: white;
+      margin: auto;
     }
   }
 }

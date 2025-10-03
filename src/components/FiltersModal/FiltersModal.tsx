@@ -10,6 +10,7 @@ import {
   KERNEL_PRESETS,
 } from '../../utils/filters';
 import { useLayersState, useLayersActions } from '../../hooks';
+import { Modal } from '../Modal';
 import styles from './FiltersModal.module.scss';
 
 interface FiltersModalProps {
@@ -167,100 +168,106 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({ onClose }) => {
 
   if (!activeLayer) {
     return (
-      <div className={styles.filtersModal}>
-        <div className={styles.errorMessage}>
-          <h3>Ошибка</h3>
-          <p>Не выбран активный слой для применения фильтра.</p>
-          <Button onClick={onClose}>Закрыть</Button>
+      <Modal active={true} onClose={onClose}>
+        <div className={styles.filtersModal}>
+          <div className={styles.errorMessage}>
+            <h3>Ошибка</h3>
+            <p>Не выбран активный слой для применения фильтра.</p>
+            <Button onClick={onClose}>Закрыть</Button>
+          </div>
         </div>
-      </div>
+      </Modal>
     );
   }
 
   const flatKernel = flattenKernel(settings.kernel);
 
   return (
-    <div className={styles.filtersModal}>
-      <div className={styles.header}>
-        <h2>Фильтрация - Пользовательские ядра</h2>
-        <p>Слой: {activeLayer.name}</p>
-      </div>
+    <Modal active={true} onClose={onClose}>
+      <div className={styles.filtersModal}>
+        <div className={styles.header}>
+          <h2>Фильтрация - Пользовательские ядра</h2>
+          <p>Слой: {activeLayer.name}</p>
+        </div>
 
-      <div className={styles.content}>
-        <div className={styles.leftPanel}>
-          {/* Выбор пресета */}
-          <div className={styles.presetSection}>
-            <h4>Преднастроенные значения</h4>
-            <select
-              value={settings.preset}
-              onChange={(e) => handlePresetChange(e.target.value as KernelPreset | 'custom')}
-              className={styles.presetSelect}
-            >
-              <option value="custom">Пользовательские</option>
-              {Object.entries(KERNEL_PRESETS).map(([key, kernel]) => (
-                <option key={key} value={key}>
-                  {kernel.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Сетка ядра 3x3 */}
-          <div className={styles.kernelSection}>
-            <h4>Ядро фильтра (3×3)</h4>
-            <div className={styles.kernelGrid}>
-              {flatKernel.map((value, index) => (
-                <input
-                  key={index}
-                  type="number"
-                  step="0.1"
-                  value={value}
-                  onChange={(e) => handleKernelValueChange(index, parseFloat(e.target.value) || 0)}
-                  className={styles.kernelInput}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Делитель */}
-          <div className={styles.divisorSection}>
-            <h4>Делитель</h4>
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={settings.divisor}
-              onChange={(e) => handleDivisorChange(parseFloat(e.target.value) || 1)}
-              className={styles.divisorInput}
-            />
-          </div>
-
-          {/* Чекбокс предпросмотра */}
-          <div className={styles.previewSection}>
-            <div className={styles.checkboxContainer}>
-              <Checkbox checked={previewEnabled} onCheckedChange={(checked) => handlePreviewToggle(!!checked)} />
-              <label>Включить предпросмотр</label>
+        <div className={styles.content}>
+          <div className={styles.leftPanel}>
+            {/* Выбор пресета */}
+            <div className={styles.presetSection}>
+              <h4>Преднастроенные значения</h4>
+              <select
+                value={settings.preset}
+                onChange={(e) => handlePresetChange(e.target.value as KernelPreset | 'custom')}
+                className={styles.presetSelect}
+              >
+                <option value="custom">Пользовательские</option>
+                {Object.entries(KERNEL_PRESETS).map(([key, kernel]) => (
+                  <option key={key} value={key}>
+                    {kernel.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Предпросмотр изображения */}
-            {previewEnabled && (
-              <div className={styles.previewImage}>
-                <canvas ref={previewCanvasRef} style={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
+            {/* Сетка ядра 3x3 */}
+            <div className={styles.kernelSection}>
+              <h4>Ядро фильтра (3×3)</h4>
+              <div className={styles.kernelGrid}>
+                {flatKernel.map((value, index) => (
+                  <input
+                    key={index}
+                    type="number"
+                    step="0.1"
+                    value={value}
+                    onChange={(e) => handleKernelValueChange(index, parseFloat(e.target.value) || 0)}
+                    className={styles.kernelInput}
+                  />
+                ))}
               </div>
-            )}
+            </div>
+
+            {/* Делитель */}
+            <div className={styles.divisorSection}>
+              <h4>Делитель</h4>
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                value={settings.divisor}
+                onChange={(e) => handleDivisorChange(parseFloat(e.target.value) || 1)}
+                className={styles.divisorInput}
+              />
+            </div>
+
+            {/* Чекбокс предпросмотра */}
+            <div className={styles.previewSection}>
+              <div className={styles.checkboxContainer}>
+                <label htmlFor="preview-checkbox" onClick={() => handlePreviewToggle(!!previewEnabled)}>
+                  <Checkbox id="preview-checkbox" checked={previewEnabled} />
+                  Включить предпросмотр
+                </label>
+              </div>
+
+              {/* Предпросмотр изображения */}
+              {previewEnabled && (
+                <div className={styles.previewImage}>
+                  <canvas ref={previewCanvasRef} style={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className={styles.actions}>
-        <Button variant="outline" onClick={handleReset}>
-          Сброс
-        </Button>
-        <Button variant="outline" onClick={handleCancel}>
-          Отмена
-        </Button>
-        <Button onClick={handleApply}>Применить</Button>
+        <div className={styles.actions}>
+          <Button variant="outline" onClick={handleReset}>
+            Сброс
+          </Button>
+          <Button variant="outline" onClick={handleCancel}>
+            Отмена
+          </Button>
+          <Button onClick={handleApply}>Применить</Button>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 };

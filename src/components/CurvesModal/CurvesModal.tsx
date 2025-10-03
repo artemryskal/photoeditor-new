@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Checkbox } from '@radix-ui/themes';
 import type { CurvesSettings, HistogramData } from '@/types/CanvasTypes';
-import { calculateHistogram, applyCurvesCorrection, getDefaultCurvesSettings } from '@/utils/curves';
-import { useLayersState, useLayersActions } from '@/hooks';
-import { HistogramChart } from './HistogramChart';
+import { getDefaultCurvesSettings } from '@/utils/curves';
+import { useLayersState, useLayersActions, useCurvesWorker } from '@/hooks';
 import { CurveGraph } from './CurveGraph';
 import styles from './CurvesModal.module.scss';
 
@@ -14,22 +13,44 @@ interface CurvesModalProps {
 export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
   const layersState = useLayersState();
   const { updateLayer } = useLayersActions();
+  const curvesWorker = useCurvesWorker();
 
   const [settings, setSettings] = useState<CurvesSettings>(getDefaultCurvesSettings());
   const [originalImageData, setOriginalImageData] = useState<ImageData | null>(null);
   const [previewEnabled, setPreviewEnabled] = useState<boolean>(true);
+  const [histogram, setHistogram] = useState<HistogramData | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const calculatingCountRef = useRef(0);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Вспомогательные функции для управления индикатором загрузки
+  const startCalculating = () => {
+    calculatingCountRef.current += 1;
+    if (calculatingCountRef.current > 0) {
+      setIsCalculating(true);
+    }
+  };
+
+  const stopCalculating = () => {
+    calculatingCountRef.current = Math.max(0, calculatingCountRef.current - 1);
+    if (calculatingCountRef.current === 0) {
+      setIsCalculating(false);
+    }
+  };
 
   // Находим активный слой
   const activeLayer = useMemo(() => {
     return layersState.layers.find((layer) => layer.id === layersState.activeLayerId);
   }, [layersState.layers, layersState.activeLayerId]);
 
-  // Строим гистограмму
-  const histogram: HistogramData | null = useMemo(() => {
-    if (!activeLayer?.imageData) return null;
-    return calculateHistogram(activeLayer.imageData);
-  }, [activeLayer?.imageData]);
+  // Строим гистограмму в worker'е
+  useEffect(() => {
+    if (!activeLayer?.imageData || !curvesWorker.isReady) return;
+
+    curvesWorker.calculateHistogram(activeLayer.imageData).then((result) => {
+      setHistogram(result);
+    });
+  }, [activeLayer?.imageData, curvesWorker]);
 
   // Запоминаем исходное изображение
   useEffect(() => {
@@ -44,10 +65,10 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
     }
   }, [activeLayer?.imageData, originalImageData]);
 
-  // Рендерим предпросмотр на canvas
+  // Рендерим предпросмотр на canvas через worker
   useEffect(() => {
     const canvas = previewCanvasRef.current;
-    if (!previewEnabled || !originalImageData || !canvas) {
+    if (!previewEnabled || !originalImageData || !canvas || !curvesWorker.isReady) {
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
@@ -57,41 +78,59 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
       return;
     }
 
-    const correctedData = applyCurvesCorrection(originalImageData, settings);
+    let cancelled = false;
 
-    // Вычисляем размеры для предпросмотра (максимум 300px по ширине)
-    const maxWidth = 300;
-    const scale = Math.min(1, maxWidth / correctedData.width);
-    const previewWidth = Math.floor(correctedData.width * scale);
-    const previewHeight = Math.floor(correctedData.height * scale);
+    curvesWorker.applyCorrection(originalImageData, settings).then((correctedData) => {
+      if (cancelled) return;
 
-    canvas.width = previewWidth;
-    canvas.height = previewHeight;
+      // Вычисляем размеры для предпросмотра (максимум 300px по ширине)
+      const maxWidth = 300;
+      const scale = Math.min(1, maxWidth / correctedData.width);
+      const previewWidth = Math.floor(correctedData.width * scale);
+      const previewHeight = Math.floor(correctedData.height * scale);
 
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      // Создаем временный canvas с полным размером
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = correctedData.width;
-      tempCanvas.height = correctedData.height;
-      const tempCtx = tempCanvas.getContext('2d');
+      canvas.width = previewWidth;
+      canvas.height = previewHeight;
 
-      if (tempCtx) {
-        tempCtx.putImageData(correctedData, 0, 0);
-        // Масштабируем на preview canvas
-        ctx.drawImage(tempCanvas, 0, 0, previewWidth, previewHeight);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Создаем временный canvas с полным размером
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = correctedData.width;
+        tempCanvas.height = correctedData.height;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        if (tempCtx) {
+          tempCtx.putImageData(correctedData, 0, 0);
+          // Масштабируем на preview canvas
+          ctx.drawImage(tempCanvas, 0, 0, previewWidth, previewHeight);
+        }
       }
-    }
-  }, [previewEnabled, settings, originalImageData]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [previewEnabled, settings, originalImageData, curvesWorker]);
 
   const handleSettingsChange = (newSettings: Partial<CurvesSettings>) => {
     setSettings((prev) => {
       const updatedSettings = { ...prev, ...newSettings };
 
-      // Если предпросмотр включен, обновляем слой с новыми настройками
-      if (previewEnabled && originalImageData && activeLayer) {
-        const correctedData = applyCurvesCorrection(originalImageData, updatedSettings);
-        updateLayer(activeLayer.id, { imageData: correctedData });
+      // Если предпросмотр включен, обновляем слой с новыми настройками через worker
+      if (previewEnabled && originalImageData && activeLayer && curvesWorker.isReady) {
+        startCalculating();
+        curvesWorker
+          .applyCorrection(originalImageData, updatedSettings)
+          .then((correctedData) => {
+            updateLayer(activeLayer.id, { imageData: correctedData });
+          })
+          .catch((error) => {
+            console.error('Ошибка применения коррекции:', error);
+          })
+          .finally(() => {
+            stopCalculating();
+          });
       }
 
       return updatedSettings;
@@ -101,12 +140,22 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
   const handlePreviewToggle = (enabled: boolean) => {
     setPreviewEnabled(enabled);
 
-    if (!originalImageData || !activeLayer) return;
+    if (!originalImageData || !activeLayer || !curvesWorker.isReady) return;
 
     if (enabled) {
-      // Применяем коррекцию к слою
-      const correctedData = applyCurvesCorrection(originalImageData, settings);
-      updateLayer(activeLayer.id, { imageData: correctedData });
+      // Применяем коррекцию к слою через worker
+      startCalculating();
+      curvesWorker
+        .applyCorrection(originalImageData, settings)
+        .then((correctedData) => {
+          updateLayer(activeLayer.id, { imageData: correctedData });
+        })
+        .catch((error) => {
+          console.error('Ошибка применения коррекции:', error);
+        })
+        .finally(() => {
+          stopCalculating();
+        });
     } else {
       // Восстанавливаем оригинальное изображение
       updateLayer(activeLayer.id, { imageData: originalImageData });
@@ -114,11 +163,14 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
   };
 
   const handleApply = () => {
-    if (!originalImageData || !activeLayer) return;
+    if (!originalImageData || !activeLayer || !curvesWorker.isReady) return;
 
-    const correctedData = applyCurvesCorrection(originalImageData, settings);
-    updateLayer(activeLayer.id, { imageData: correctedData });
-    onClose();
+    setIsCalculating(true);
+    curvesWorker.applyCorrection(originalImageData, settings).then((correctedData) => {
+      updateLayer(activeLayer.id, { imageData: correctedData });
+      setIsCalculating(false);
+      onClose();
+    });
   };
 
   const handleReset = () => {
@@ -175,16 +227,10 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
 
       <div className={styles.content}>
         <div className={styles.leftPanel}>
-          {/* Отображение гистограммы */}
-          <div className={styles.histogramSection}>
-            <h4>Гистограмма</h4>
-            {histogram && <HistogramChart histogram={histogram} targetChannel={settings.targetChannel} />}
-          </div>
-
-          {/* График кривой */}
-          <div className={styles.curveSection}>
-            <h4>Кривая коррекции</h4>
-            <CurveGraph settings={settings} onSettingsChange={handleSettingsChange} />
+          {/* Объединенный график: гистограмма + кривая */}
+          <div className={styles.combinedGraphSection}>
+            <h4>Гистограмма и кривая градационной коррекции</h4>
+            <CurveGraph settings={settings} histogram={histogram} onSettingsChange={handleSettingsChange} />
           </div>
         </div>
 
@@ -193,7 +239,7 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
           <div className={styles.channelSelection}>
             <h4>Канал коррекции</h4>
             <div className={styles.radioGroup}>
-              <label className={styles.radioLabel}>
+              <label className={styles.radioLabel} onClick={() => handleSettingsChange({ targetChannel: 'rgb' })}>
                 <input
                   type="radio"
                   value="rgb"
@@ -202,7 +248,7 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
                 />
                 RGB каналы
               </label>
-              <label className={styles.radioLabel}>
+              <label className={styles.radioLabel} onClick={() => handleSettingsChange({ targetChannel: 'alpha' })}>
                 <input
                   type="radio"
                   value="alpha"
@@ -270,8 +316,10 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
           {/* Чекбокс предпросмотра */}
           <div className={styles.previewSection}>
             <div className={styles.checkboxContainer}>
-              <Checkbox checked={previewEnabled} onCheckedChange={(checked) => handlePreviewToggle(!!checked)} />
-              <label>Включить предпросмотр</label>
+              <label onClick={() => handlePreviewToggle(!previewEnabled)} className={styles.checkboxLabel}>
+                <Checkbox checked={previewEnabled} />
+                Включить предпросмотр
+              </label>
             </div>
 
             {/* Предпросмотр изображения */}
@@ -285,13 +333,16 @@ export const CurvesModal: React.FC<CurvesModalProps> = ({ onClose }) => {
       </div>
 
       <div className={styles.actions}>
-        <Button variant="outline" onClick={handleReset}>
+        {isCalculating && <span className={styles.calculatingIndicator}>Обработка...</span>}
+        <Button variant="outline" onClick={handleReset} disabled={isCalculating}>
           Сброс
         </Button>
-        <Button variant="outline" onClick={handleCancel}>
+        <Button variant="outline" onClick={handleCancel} disabled={isCalculating}>
           Отмена
         </Button>
-        <Button onClick={handleApply}>Применить</Button>
+        <Button onClick={handleApply} disabled={isCalculating || !curvesWorker.isReady}>
+          Применить
+        </Button>
       </div>
     </div>
   );
