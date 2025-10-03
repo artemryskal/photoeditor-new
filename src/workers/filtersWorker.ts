@@ -1,62 +1,18 @@
-import type { FilterKernel, KernelPreset, FilterSettings } from '../types/CanvasTypes';
+import type { FilterSettings } from '../types/CanvasTypes';
 
-// Предустановленные ядра фильтров
-export const KERNEL_PRESETS: Record<KernelPreset, FilterKernel> = {
-  identity: {
-    name: 'Тождественное отображение',
-    values: [
-      [0, 0, 0],
-      [0, 1, 0],
-      [0, 0, 0],
-    ],
-    divisor: 1,
-  },
-  sharpen: {
-    name: 'Повышение резкости',
-    values: [
-      [0, -1, 0],
-      [-1, 5, -1],
-      [0, -1, 0],
-    ],
-    divisor: 1,
-  },
-  gaussian: {
-    name: 'Фильтр Гаусса (3x3)',
-    values: [
-      [1, 2, 1],
-      [2, 4, 2],
-      [1, 2, 1],
-    ],
-    divisor: 16,
-  },
-  'box-blur': {
-    name: 'Прямоугольное размытие',
-    values: [
-      [1, 1, 1],
-      [1, 1, 1],
-      [1, 1, 1],
-    ],
-    divisor: 9,
-  },
-  'prewitt-x': {
-    name: 'Оператор Прюитта (X)',
-    values: [
-      [-1, 0, 1],
-      [-1, 0, 1],
-      [-1, 0, 1],
-    ],
-    divisor: 1,
-  },
-  'prewitt-y': {
-    name: 'Оператор Прюитта (Y)',
-    values: [
-      [-1, -1, -1],
-      [0, 0, 0],
-      [1, 1, 1],
-    ],
-    divisor: 1,
-  },
-};
+// Типы сообщений
+interface ApplyFilterMessage {
+  type: 'apply-filter';
+  requestId: number;
+  imageData: {
+    data: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+  settings: FilterSettings;
+}
+
+type WorkerMessage = ApplyFilterMessage;
 
 // Создание ImageData с обработкой краев (padding)
 function createPaddedImageData(imageData: ImageData): ImageData {
@@ -117,7 +73,7 @@ function createPaddedImageData(imageData: ImageData): ImageData {
 }
 
 // Применение свертки с ядром
-export function applyConvolution(imageData: ImageData, kernel: number[][], divisor: number = 1): ImageData {
+function applyConvolution(imageData: ImageData, kernel: number[][], divisor: number = 1): ImageData {
   const { width, height } = imageData;
 
   // Создаем изображение с обработкой краев
@@ -161,35 +117,39 @@ export function applyConvolution(imageData: ImageData, kernel: number[][], divis
   return new ImageData(resultData, width, height);
 }
 
-// Настройки по умолчанию
-export function getDefaultFilterSettings(): FilterSettings {
-  return {
-    preset: 'identity',
-    kernel: KERNEL_PRESETS.identity.values,
-    divisor: KERNEL_PRESETS.identity.divisor || 1,
-    previewEnabled: false,
-  };
-}
+// Обработчик сообщений
+self.onmessage = (e: MessageEvent<WorkerMessage>) => {
+  const msg = e.data;
 
-// Получение ядра по пресету
-export function getKernelByPreset(preset: KernelPreset): FilterKernel {
-  return KERNEL_PRESETS[preset];
-}
+  try {
+    if (msg.type === 'apply-filter') {
+      const imageData = new ImageData(
+        new Uint8ClampedArray(msg.imageData.data),
+        msg.imageData.width,
+        msg.imageData.height,
+      );
 
-// Создание плоского массива из матрицы 3x3 для удобства работы с инпутами
-export function flattenKernel(kernel: number[][]): number[] {
-  return kernel.flat();
-}
+      const filteredData = applyConvolution(imageData, msg.settings.kernel, msg.settings.divisor);
 
-// Создание матрицы 3x3 из плоского массива
-export function unflattenKernel(values: number[]): number[][] {
-  if (values.length !== 9) {
-    throw new Error('Kernel must have exactly 9 values');
+      self.postMessage({
+        type: 'filter-complete',
+        requestId: msg.requestId,
+        imageData: {
+          data: filteredData.data,
+          width: filteredData.width,
+          height: filteredData.height,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('[FiltersWorker] Ошибка обработки:', error);
+    self.postMessage({
+      type: 'error',
+      requestId: msg.requestId || 0,
+      error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+    });
   }
+};
 
-  return [
-    [values[0], values[1], values[2]],
-    [values[3], values[4], values[5]],
-    [values[6], values[7], values[8]],
-  ];
-}
+export {};
+

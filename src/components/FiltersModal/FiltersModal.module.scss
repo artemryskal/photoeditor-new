@@ -1,8 +1,4 @@
 .filtersModal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   width: 800px;
   max-width: 90vw;
   max-height: 90vh;
@@ -15,6 +11,14 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
 }
 
 .header {
@@ -143,6 +147,7 @@
   }
 
   .previewImage {
+    width: fit-content;
     margin-top: 16px;
     padding: 12px;
     border: 1px solid #ddd;
@@ -163,10 +168,32 @@
 .actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid #e0e0e0;
   background: #ffffff;
+}
+
+.processingIndicator {
+  margin-right: auto;
+  padding: 8px 16px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .errorMessage {
