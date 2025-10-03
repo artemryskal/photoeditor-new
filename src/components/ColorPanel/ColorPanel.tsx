@@ -44,7 +44,7 @@ export const ColorPanel = () => {
 
             <div className={css.ColorInfo}>
               <Text size="1">
-                Позиция: ({primaryColor.position.x}, {primaryColor.position.y})
+                Позиция: ({primaryColor.position.x.toFixed(1)}, {primaryColor.position.y.toFixed(1)})
               </Text>
 
               <Separator orientation="horizontal" size="4" />
@@ -95,7 +95,7 @@ export const ColorPanel = () => {
 
             <div className={css.ColorInfo}>
               <Text size="1">
-                Позиция: ({secondaryColor.position.x}, {secondaryColor.position.y})
+                Позиция: ({secondaryColor.position.x.toFixed(1)}, {secondaryColor.position.y.toFixed(1)})
               </Text>
 
               <Separator orientation="horizontal" size="4" />

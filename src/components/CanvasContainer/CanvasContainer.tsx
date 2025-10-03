@@ -78,13 +78,17 @@ export const CanvasContainer = () => {
         return null;
       }
 
-      // Вычисляем координаты в оригинальном изображении
-      const originalX = Math.floor((canvasX - imageX) / scaleFactor);
-      const originalY = Math.floor((canvasY - imageY) / scaleFactor);
+      // Вычисляем координаты в оригинальном изображении (непрерывные)
+      const originalX = (canvasX - imageX) / scaleFactor;
+      const originalY = (canvasY - imageY) / scaleFactor;
+
+      // Получаем индекс пикселя (для извлечения цвета)
+      const pixelX = Math.floor(originalX);
+      const pixelY = Math.floor(originalY);
 
       // Получаем цвет из оригинальных данных изображения
       const imageData = imageState.imageData;
-      const pixelIndex = (originalY * imageState.originalWidth + originalX) * 4;
+      const pixelIndex = (pixelY * imageState.originalWidth + pixelX) * 4;
 
       if (pixelIndex < 0 || pixelIndex >= imageData.data.length) return null;
 
