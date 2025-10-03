@@ -189,6 +189,27 @@ function nearestNeighborScale(
   return destData;
 }
 
+/**
+ * Изменяет размер ImageData
+ * @param imageData - исходный ImageData
+ * @param newWidth - новая ширина
+ * @param newHeight - новая высота
+ * @returns ImageData с новым размером
+ */
+function resizeImageData(imageData: ImageData, newWidth: number, newHeight: number): ImageData {
+  const canvas = new OffscreenCanvas(imageData.width, imageData.height);
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.putImageData(imageData, 0, 0);
+
+  const resultCanvas = new OffscreenCanvas(newWidth, newHeight);
+  const resultCtx = resultCanvas.getContext('2d')!;
+
+  resultCtx.drawImage(canvas, 0, 0, newWidth, newHeight);
+
+  return resultCtx.getImageData(0, 0, newWidth, newHeight);
+}
+
 // Хранилище для canvas и контекста
 let offscreenCanvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
@@ -248,7 +269,13 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
           } else if (layer.type === 'image' && layer.imageData) {
             const imgData = new ImageData(layer.imageData.width, layer.imageData.height);
             imgData.data.set(layer.imageData.data);
-            imageData = imgData;
+
+            // Проверяем размер imageData и масштабируем если нужно
+            if (imgData.width !== msg.originalWidth || imgData.height !== msg.originalHeight) {
+              imageData = resizeImageData(imgData, msg.originalWidth, msg.originalHeight);
+            } else {
+              imageData = imgData;
+            }
           } else {
             imageData = new ImageData(msg.originalWidth, msg.originalHeight);
           }

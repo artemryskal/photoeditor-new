@@ -132,3 +132,112 @@
     background: #0087e6;
   }
 }
+
+.dropZone {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #007acc;
+    background: #f0f8ff;
+  }
+
+  &.dragging {
+    border-color: #007acc;
+    background: #e3f2fd;
+    transform: scale(1.02);
+  }
+
+  &.hasFile {
+    border-color: #4caf50;
+    background: #f1f8f4;
+  }
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+  clip-path: inset(100%);
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
+
+.dropZoneClickArea {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropZoneContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.uploadIcon {
+  font-size: 48px;
+  opacity: 0.6;
+}
+
+.dropZoneText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mainText {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.subText {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.fileIcon {
+  font-size: 48px;
+}
+
+.fileName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.fileSize {
+  font-size: 12px;
+  color: #666;
+}

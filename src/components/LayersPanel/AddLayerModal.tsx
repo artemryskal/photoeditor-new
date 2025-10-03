@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import type { Layer } from '../../types/CanvasTypes';
 import { Modal } from '../Modal';
+import { FileUploadZone } from '../FileUploadZone';
 import styles from './AddLayerModal.module.scss';
 
 interface AddLayerModalProps {
@@ -12,7 +13,7 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
   const [layerType, setLayerType] = useState<'image' | 'color'>('image');
   const [layerName, setLayerName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#ffffff');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,15 +24,13 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
     }
 
     if (layerType === 'image') {
-      const fileInput = fileInputRef.current;
-      if (!fileInput?.files?.[0]) {
+      if (!selectedFile) {
         alert('Выберите изображение');
         return;
       }
 
-      const file = fileInput.files[0];
       try {
-        const imageData = await loadImageFromFile(file);
+        const imageData = await loadImageFromFile(selectedFile);
 
         const layer: Omit<Layer, 'id'> = {
           name: layerName,
@@ -91,6 +90,10 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
     });
   };
 
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+  };
+
   return (
     <Modal active={true} onClose={onClose}>
       <div className={styles.modalHeader}>
@@ -113,7 +116,7 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
         <div className={styles.formGroup}>
           <label>Тип слоя:</label>
           <div className={styles.radioGroup}>
-            <label className={styles.radioLabel}>
+            <label className={styles.radioLabel} onClick={() => setLayerType('image')}>
               <input
                 key={`${layerType}-${layerType === 'image'}-image`}
                 type="radio"
@@ -123,7 +126,7 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
               />
               Изображение
             </label>
-            <label className={styles.radioLabel}>
+            <label className={styles.radioLabel} onClick={() => setLayerType('color')}>
               <input
                 key={`${layerType}-${layerType === 'color'}-color`}
                 type="radio"
@@ -138,8 +141,8 @@ export const AddLayerModal: React.FC<AddLayerModalProps> = ({ onClose, onCreateL
 
         {layerType === 'image' ? (
           <div className={styles.formGroup}>
-            <label htmlFor="imageFile">Выберите изображение:</label>
-            <input id="imageFile" ref={fileInputRef} type="file" accept="image/*" required />
+            <label>Выберите изображение:</label>
+            <FileUploadZone onFileSelect={handleFileSelect} accept="image/*" maxSizeMB={10} />
           </div>
         ) : (
           <div className={styles.formGroup}>

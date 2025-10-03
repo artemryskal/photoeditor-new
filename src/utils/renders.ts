@@ -1,5 +1,5 @@
 import { parseGrayBit7 } from './parsers';
-import { compositeLayers, createColorImageData, applyAlphaChannels } from './blendModes';
+import { compositeLayers, createColorImageData, applyAlphaChannels, resizeImageData } from './blendModes';
 import type { Layer } from '../types/CanvasTypes';
 
 interface RenderCanvasResult {
@@ -348,8 +348,12 @@ export const renderLayersWithScaleAndPosition = (
         // Создаем ImageData из цвета
         imageData = createColorImageData(layer.color, originalWidth, originalHeight);
       } else if (layer.type === 'image' && layer.imageData) {
-        // Используем ImageData изображения
-        imageData = layer.imageData;
+        // Проверяем размер imageData и масштабируем если нужно
+        if (layer.imageData.width !== originalWidth || layer.imageData.height !== originalHeight) {
+          imageData = resizeImageData(layer.imageData, originalWidth, originalHeight);
+        } else {
+          imageData = layer.imageData;
+        }
       } else {
         // Создаем пустой прозрачный слой
         imageData = new ImageData(originalWidth, originalHeight);

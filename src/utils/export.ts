@@ -1,5 +1,5 @@
 import type { Layer } from '../types/CanvasTypes';
-import { compositeLayers, createColorImageData } from './blendModes';
+import { compositeLayers, createColorImageData, resizeImageData } from './blendModes';
 
 /**
  * Экспортирует изображение в формате PNG
@@ -80,8 +80,12 @@ const createExportCanvas = (layers: Layer[], width: number, height: number): HTM
         // Создаем ImageData из цвета
         imageData = createColorImageData(layer.color, width, height);
       } else if (layer.type === 'image' && layer.imageData) {
-        // Используем ImageData изображения
-        imageData = layer.imageData;
+        // Проверяем размер imageData и масштабируем если нужно
+        if (layer.imageData.width !== width || layer.imageData.height !== height) {
+          imageData = resizeImageData(layer.imageData, width, height);
+        } else {
+          imageData = layer.imageData;
+        }
       } else {
         // Создаем пустой прозрачный слой
         imageData = new ImageData(width, height);

@@ -1,0 +1,98 @@
+@use '../../assets/scss/base/variables' as *;
+
+.dropZone {
+  max-width: 100%;
+  width: auto;
+  min-height: 200px;
+  border: 2px dashed var(--gray-7);
+  border-radius: 8px;
+  background-color: var(--gray-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+
+  &:hover {
+    border-color: var(--accent-9);
+    background-color: var(--gray-3);
+  }
+
+  &.dragging {
+    border-color: var(--accent-9);
+    background-color: var(--accent-3);
+    border-style: solid;
+  }
+}
+
+.dropZoneContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  user-select: none;
+}
+
+.uploadIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--gray-9);
+  opacity: 0.7;
+}
+
+.dropZoneText {
+  text-align: center;
+}
+
+.mainText {
+  font-size: 16px;
+  color: var(--gray-12);
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.clickText {
+  color: var(--accent-9);
+  text-decoration: underline;
+}
+
+.subText {
+  font-size: 14px;
+  color: var(--gray-10);
+  margin: 0;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.fileIcon {
+  width: 32px;
+  height: 32px;
+  color: var(--accent-9);
+}
+
+.fileDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fileName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-12);
+  margin: 0;
+  word-break: break-all;
+}
+
+.fileSize {
+  font-size: 12px;
+  color: var(--gray-10);
+  margin: 0;
+}
