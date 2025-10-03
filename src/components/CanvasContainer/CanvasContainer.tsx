@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAtom } from '@reatom/npm-react';
 
 import {
@@ -20,7 +20,7 @@ import {
   rgbToLab,
   rgbToOklch,
 } from '@/utils';
-import { useLayersActions, useLayersState } from '@/hooks';
+import { useLayersActions, useLayersState, useRenderWorker } from '@/hooks';
 
 import { CanvasUpload } from '@/components/CanvasUpload';
 import { Toolbar } from '@/components/Toolbar';
@@ -35,6 +35,7 @@ export const CanvasContainer = () => {
   const [, setImageState] = useAtom(imageStateAtom);
   const [, setScale] = useAtom(scaleAtom);
   const [scale] = useAtom(scaleAtom);
+  const [prevScale, setPrevScale] = useState(scale);
   const [imageState] = useAtom(imageStateAtom);
   const [tool] = useAtom(activeTool);
   const [canvasPosition, setCanvasPosition] = useAtom(canvasPositionAtom);
@@ -46,6 +47,10 @@ export const CanvasContainer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const [useWorker, setUseWorker] = useState(false);
+  const workerInitialized = useRef(false);
+  const renderWorker = useRenderWorker();
+  const renderRequestRef = useRef<number | null>(null);
 
   // Получение цвета пикселя
   const getPixelColor = useCallback(
@@ -159,21 +164,47 @@ export const CanvasContainer = () => {
     [tool, getPixelColor, setPrimaryColor, setSecondaryColor],
   );
 
-  // Эффект для загрузки и первичного рендеринга файла
+  // Эффект для инициализации worker
   useEffect(() => {
-    if (!file || !canvasRef.current) return;
+    if (!canvasRef.current || workerInitialized.current) return;
 
-    const renderHandler = async () => {
-      if (!canvasRef.current) return;
-
-      // Устанавливаем размер canvas на весь экран (отступы будут в алгоритме отрисовки)
+    // Пытаемся инициализировать OffscreenCanvas
+    if (renderWorker.isReady && typeof OffscreenCanvas !== 'undefined') {
       const container = canvasRef.current.parentElement;
       if (container) {
+        // ВАЖНО: устанавливаем размер canvas ДО transferControlToOffscreen
         canvasRef.current.width = container.clientWidth;
         canvasRef.current.height = container.clientHeight;
+
+        const success = renderWorker.initCanvas(canvasRef.current);
+
+        if (success) {
+          setUseWorker(true);
+          workerInitialized.current = true;
+          console.log('Worker инициализирован с OffscreenCanvas');
+        } else {
+          console.warn('Не удалось инициализировать OffscreenCanvas, используем обычный рендеринг');
+        }
+      }
+    }
+  }, [renderWorker]);
+
+  // Эффект для загрузки и первичного рендеринга файла
+  useEffect(() => {
+    if (!file) return;
+
+    const renderHandler = async () => {
+      // Создаем временный canvas для загрузки изображения
+      const tempCanvas = document.createElement('canvas');
+
+      // Устанавливаем размер временного canvas
+      const container = canvasRef.current?.parentElement;
+      if (container) {
+        tempCanvas.width = container.clientWidth;
+        tempCanvas.height = container.clientHeight;
       }
 
-      const result = await renderCanvasWithAutoScale(file, canvasRef.current);
+      const result = await renderCanvasWithAutoScale(file, tempCanvas);
       if (!result) return;
 
       const {
@@ -199,6 +230,13 @@ export const CanvasContainer = () => {
         imageData,
       });
       setScale(calculatedScale);
+      setPrevScale(calculatedScale);
+
+      // Если не используем worker, устанавливаем размер canvas
+      if (!useWorker && canvasRef.current && container) {
+        canvasRef.current.width = container.clientWidth;
+        canvasRef.current.height = container.clientHeight;
+      }
 
       // Создаем слой из загруженного изображения
       if (imageData) {
@@ -235,33 +273,91 @@ export const CanvasContainer = () => {
     renderHandler();
   }, [file, setStatus, setImageState, setScale, addLayer, clearAllLayers, addAlphaChannel]);
 
-  // Эффект для рендеринга слоев при изменении масштаба, позиции или слоев
-  useEffect(() => {
+  // Оптимизированный рендеринг с использованием requestAnimationFrame
+  const performRender = useCallback(() => {
     if (!imageState || !canvasRef.current) return;
 
-    // Если есть слои, рендерим их
-    if (layersState.layers.length > 0) {
-      renderLayersWithScaleAndPosition(
+    const container = canvasRef.current.parentElement;
+    if (!container) return;
+
+    const canvasWidth = container.clientWidth;
+    const canvasHeight = container.clientHeight;
+
+    // Определяем, изменился ли масштаб (для использования nearest neighbor)
+    const scaleChanged = scale !== prevScale;
+    const useNearestNeighbor = scaleChanged;
+
+    if (scaleChanged) {
+      setPrevScale(scale);
+    }
+
+    // Если worker доступен и готов, используем его
+    if (useWorker && renderWorker.isReady && layersState.layers.length > 0) {
+      renderWorker.render(
         layersState.layers,
         imageState.originalWidth,
         imageState.originalHeight,
-        canvasRef.current,
         scale,
         canvasPosition,
+        canvasWidth,
+        canvasHeight,
         layersState.alphaChannels,
+        useNearestNeighbor,
       );
-    } else if (imageState.imageData) {
-      // Если слоев нет, рендерим оригинальное изображение (для обратной совместимости)
-      renderScaledImageWithPosition(
-        imageState.imageData,
-        imageState.originalWidth,
-        imageState.originalHeight,
-        canvasRef.current,
-        scale,
-        canvasPosition,
-      );
+    } else if (!useWorker && canvasRef.current) {
+      // Fallback на обычный рендеринг
+      if (layersState.layers.length > 0) {
+        renderLayersWithScaleAndPosition(
+          layersState.layers,
+          imageState.originalWidth,
+          imageState.originalHeight,
+          canvasRef.current,
+          scale,
+          canvasPosition,
+          layersState.alphaChannels,
+        );
+      } else if (imageState.imageData) {
+        renderScaledImageWithPosition(
+          imageState.imageData,
+          imageState.originalWidth,
+          imageState.originalHeight,
+          canvasRef.current,
+          scale,
+          canvasPosition,
+        );
+      }
     }
-  }, [scale, imageState, canvasPosition, layersState.layers, layersState.alphaChannels]);
+  }, [
+    imageState,
+    scale,
+    prevScale,
+    canvasPosition,
+    layersState.layers,
+    layersState.alphaChannels,
+    useWorker,
+    renderWorker,
+  ]);
+
+  // Эффект для рендеринга слоев при изменении масштаба, позиции или слоев
+  useEffect(() => {
+    // Отменяем предыдущий запрос, если он был
+    if (renderRequestRef.current !== null) {
+      cancelAnimationFrame(renderRequestRef.current);
+    }
+
+    // Планируем рендеринг через requestAnimationFrame для оптимизации
+    renderRequestRef.current = requestAnimationFrame(() => {
+      performRender();
+      renderRequestRef.current = null;
+    });
+
+    return () => {
+      if (renderRequestRef.current !== null) {
+        cancelAnimationFrame(renderRequestRef.current);
+        renderRequestRef.current = null;
+      }
+    };
+  }, [performRender]);
 
   // Эффект для смены курсора в зависимости от активного инструмента
   useEffect(() => {
