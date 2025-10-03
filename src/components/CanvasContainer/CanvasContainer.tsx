@@ -275,7 +275,7 @@ export const CanvasContainer = () => {
     };
 
     renderHandler();
-  }, [file, setStatus, setImageState, setScale, addLayer, clearAllLayers, addAlphaChannel]);
+  }, [file, setStatus, setImageState, setScale, addLayer, clearAllLayers, addAlphaChannel, useWorker]);
 
   // Оптимизированный рендеринг с использованием requestAnimationFrame
   const performRender = useCallback(() => {
@@ -362,6 +362,31 @@ export const CanvasContainer = () => {
       }
     };
   }, [performRender]);
+
+  // Эффект для изменения размера canvas при resize окна
+  useEffect(() => {
+    const handleResize = () => {
+      if (!canvasRef.current) return;
+
+      const container = canvasRef.current.parentElement;
+      if (!container) return;
+
+      // Если не используем worker, обновляем размеры canvas напрямую
+      if (!useWorker) {
+        canvasRef.current.width = container.clientWidth;
+        canvasRef.current.height = container.clientHeight;
+      }
+
+      // Перерисовываем после изменения размера
+      performRender();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [useWorker, performRender]);
 
   // Эффект для смены курсора в зависимости от активного инструмента
   useEffect(() => {
