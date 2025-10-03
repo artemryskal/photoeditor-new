@@ -137,7 +137,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  position: relative;
 
   select {
     flex: 1;
@@ -151,46 +150,6 @@
       outline: none;
       border-color: #007bff;
     }
-  }
-}
-
-.Tooltip {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #333;
-  color: white;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  z-index: 1000;
-  margin-top: 8px;
-
-  strong {
-    display: block;
-    margin-bottom: 6px;
-  }
-
-  p {
-    margin: 0 0 6px 0;
-    line-height: 1.4;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 20px;
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-bottom: 6px solid #333;
   }
 }
 

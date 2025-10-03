@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAtom } from '@reatom/npm-react';
-import { Button } from '@radix-ui/themes';
+import { Button, Tooltip } from '@radix-ui/themes';
 
 import { imageStateAtom, statusAtom, scaleAtom, canvasPositionAtom } from '@/stores';
 import { INTERPOLATION_METHODS, type InterpolationMethod, resizeImage } from '@/utils/interpolations';
@@ -42,7 +42,6 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
     if (imageState) {
@@ -74,12 +73,18 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
     setErrors((prev) => ({ ...prev, [field]: error }));
 
     if (formData.maintainAspectRatio && !error) {
-      if (field === 'width') {
-        const newHeight = Math.round(value / aspectRatio);
-        setFormData((prev) => ({ ...prev, width: value, height: newHeight }));
+      if (formData.unit === 'percent') {
+        // Для процентов: соотношение всегда 1:1, т.к. проценты уже учитывают пропорции
+        setFormData((prev) => ({ ...prev, width: value, height: value }));
       } else {
-        const newWidth = Math.round(value * aspectRatio);
-        setFormData((prev) => ({ ...prev, height: value, width: newWidth }));
+        // Для пикселей: используем aspectRatio
+        if (field === 'width') {
+          const newHeight = Math.round(value / aspectRatio);
+          setFormData((prev) => ({ ...prev, width: value, height: newHeight }));
+        } else {
+          const newWidth = Math.round(value * aspectRatio);
+          setFormData((prev) => ({ ...prev, height: value, width: newWidth }));
+        }
       }
     } else {
       setFormData((prev) => ({ ...prev, [field]: value }));
@@ -226,25 +231,23 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
 
       <form onSubmit={handleSubmit} className={css.Form}>
         <div className={css.UnitSelector}>
-          <label>
+          <label onClick={() => handleUnitChange('pixels')}>
             <input
               key={formData.unit + 'pixels'}
               type="radio"
               name="unit"
               value="pixels"
               checked={formData.unit === 'pixels'}
-              onChange={() => handleUnitChange('pixels')}
             />
             Пиксели
           </label>
-          <label>
+          <label onClick={() => handleUnitChange('percent')}>
             <input
               key={formData.unit + 'percent'}
               type="radio"
               name="unit"
               value="percent"
               checked={formData.unit === 'percent'}
-              onChange={() => handleUnitChange('percent')}
             />
             Проценты
           </label>
@@ -277,12 +280,13 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
           </div>
         </div>
         <div className={css.AspectRatioControl}>
-          <label>
+          <label
+            onClick={() => setFormData((prev) => ({ ...prev, maintainAspectRatio: !formData.maintainAspectRatio }))}
+          >
             <input
               key={formData.maintainAspectRatio + 'checkbox'}
               type="checkbox"
               checked={formData.maintainAspectRatio}
-              onChange={(e) => setFormData((prev) => ({ ...prev, maintainAspectRatio: e.target.checked }))}
             />
             Сохранять пропорции
           </label>
@@ -303,23 +307,21 @@ export const ResizeModal = ({ onClose }: ResizeModalProps) => {
                 </option>
               ))}
             </select>
-            <Button
-              type="button"
-              variant="soft"
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
+            <Tooltip
+              content={
+                <div style={{ maxWidth: '300px' }}>
+                  <strong style={{ display: 'block', marginBottom: '6px' }}>{currentMethod.name}</strong>
+                  <p style={{ margin: '0 0 6px 0', lineHeight: '1.4' }}>{currentMethod.description}</p>
+                  <p style={{ margin: 0, lineHeight: '1.4' }}>
+                    <strong>Преимущества:</strong> {currentMethod.advantages}
+                  </p>
+                </div>
+              }
             >
-              ?
-            </Button>
-            {showTooltip && (
-              <div className={css.Tooltip}>
-                <strong>{currentMethod.name}</strong>
-                <p>{currentMethod.description}</p>
-                <p>
-                  <strong>Преимущества:</strong> {currentMethod.advantages}
-                </p>
-              </div>
-            )}
+              <Button type="button" variant="soft">
+                ?
+              </Button>
+            </Tooltip>
           </div>
         </div>
         <div className={css.Actions}>
